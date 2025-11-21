@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> Weather </title>
+</head>
+<body>
+    <h1> Weather! </h1>
+
+    <div class="weather-widget">
+        <form method="POST">
+            <input type="text" name="city_input" placeholder="Enter city" required>
+            <button type="submit">Get Weather</button>
+        </form>
+
+        {% if weather %}
+            <div class="weather-display">
+                <h3>{{ weather.location }}</h3>
+                <img src="http://openweathermap.org/img/wn/{{ weather.icon }}@2x.png" alt="weather icon">
+                <p class="temp">{{ weather.temp }}°F</p>
+                <p class="desc">{{ weather.description }}</p>
+            </div>
+
+        {% else %}
+            <p>Could not find weather. Try again.</p>
+        {% endif %}
+    </div>
+    
+</body>
+</html>
