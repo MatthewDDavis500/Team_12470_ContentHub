@@ -5,6 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Content Hub</title>
 
+    <style>
+        * {
+            text-align: center;
+        }
+    </style>
+
     {{bootstrap.load_css()}}
 </head>
 <body>
@@ -14,23 +20,28 @@
 
     <br><br>
 
-    <form>
-        <label for="fname">First Name:</label><br>
-        <input type="text" id="fname" name="fname">
-        <label for="lname">Last Name:</label><br>
-        <input type="text" id="lname" name="lname">
-        <label for="username">Username:</label><br>
-        <input type="text" id="username" name="username">
-        <label for="password">Password:</label><br>
-        <input type="text" id="password" name="password">
-        <label for="confirm">Confirm Password:</label><br>
-        <input type="text" id="confirm" name="confirm"><br><br>
+    <form method="POST" action="/create_an_account">
+        {{ form.csrf_token }}
+        {{ form.fname.label }} 
+        {{ form.fname(size=32) }}
+        <br><br>
+        {{ form.lname.label }} 
+        {{ form.lname(size=32) }}
+        <br><br>
+        {{ form.username.label }} 
+        {{ form.username(size=32) }}
+        <br><br>
+        {{ form.password.label }} 
+        {{ form.password(size=32) }}
+        <br><br>
+        {{ form.passwordConfirm.label }} 
+        {{ form.passwordConfirm(size=32) }}
+        <br><br>
         <input type="submit" value="Submit">
     </form>
 
-    <br><br><br><br>
 
-    <p>Already have an account?</p>
-    <button>Sign In</button>
+    <br><br><br><br>
+    <a href="{{ url_for('sign_in') }}">Already have an account?</a>
 </body>
 </html>
