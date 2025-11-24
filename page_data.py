@@ -2,4 +2,5 @@
 pages = {
     "test page" : "test",
     "example page" : "example",
+    "weather page" : "weather",
     }

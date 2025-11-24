@@ -32,3 +32,8 @@ def test():
 @app.route('/example')
 def example():
     return render_template("example.html")
+
+@app.route('/weather', methods=['GET', 'POST'])
+def weather():
+    from home import weather, get_lat_lon, API_KEY_WEATHER
+    return weather()
