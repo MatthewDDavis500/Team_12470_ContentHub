@@ -11,6 +11,14 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret_key'
 bootstrap = Bootstrap5(app)
 
+# database -- stuff here were secrets. Removed to allow push to remote
+#   host
+#   user
+#   pass
+#   database
+#   port
+# 
+
 if database.is_connected():
     print("Successfully connected to MySQL database!")
 else:
@@ -48,25 +56,8 @@ def main():
 
 @app.route('/weather', methods=['GET', 'POST'])
 def weather():
-    weather_data = None
-    city = "Seaside"
-
-    if request.method == 'POST':
-        city = request.form.get('city_input')
-    lat, lon, location_name = get_lat_lon(city)
-
-    if lat and lon:
-        weather_url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={API_KEY_WEATHER}&units=imperial"
-        response = requests.get(weather_url)
-        api_data = response.json()
-
-        weather_data = {
-            'location': location_name,
-            'temp': round(api_data['main']['temp']),
-            'description': api_data['weather'][0]['description'].title(),
-            'icon': api_data['weather'][0]['icon']
-        }
-    return render_template('weather.html', weather=weather_data)
+    from home import weather, get_lat_lon, API_KEY_WEATHER
+    return weather()
 
 @app.route('/test')
 def test():
