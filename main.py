@@ -19,17 +19,6 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret_key'
 bootstrap = Bootstrap5(app)
 
-API_KEY_WEATHER = "c1dc9ea9c2388bec9e6448061862dbb4"
-def get_lat_lon(city_name):
-    geo_url = f"http://api.openweathermap.org/geo/1.0/direct?q={city_name}&limit=1&appid={API_KEY_WEATHER}"
-    response = requests.get(geo_url)
-    data = response.json()
-
-    if data:
-        return data[0]['lat'], data[0]['lon'], data[0]['name']
-    else:
-        return None, None, None
-
 class PageSelection(FlaskForm):
     chosen_page = SelectField( 
     choices=[('null','Choose a page')] + ([(route["route"], page) for page, route in pages.items() if page [:4] != "hide"]),
