@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang = "eg">
 
@@ -10,7 +9,7 @@
     <body>
         <h2 class="card-title">Welcome to the main page!</h2>
         <form method = "POST" action = "/">
-            {{form.csrf_token}}
+            {{ form.csrf_token }}
             {{ form.chosen_page }}
             <input type = "submit" value = "Go to page">
         </form>
