@@ -124,4 +124,7 @@ ehthumbs_vista.db
 
 # Windows shortcuts
 
+__pycache__/
+*.py[cod]
+
 # End of https://www.toptal.com/developers/gitignore/api/venv,windows,macos,visualbasic,dotenv,virtualenv
