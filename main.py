@@ -30,6 +30,26 @@ def get_lat_lon(city_name):
     else:
         return None, None, None
 
+def weather():
+    weather_data = None
+    if request.method == 'POST':
+        city = request.form.get('city_input')
+        if city:
+            lat, lon, name = get_lat_lon(city)
+            if lat and lon:
+                weather_url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={API_KEY_WEATHER}&units=imperial"
+                response = requests.get(weather_url)
+                api_data = response.json()
+                
+                weather_data = {
+                    "location": name,
+                    "temp": round(api_data['main']['temp']),
+                    "description": api_data['weather'][0]['description'].title(),
+                    "icon": api_data['weather'][0]['icon']
+                }
+
+    return render_template('weather.html', weather=weather_data)
+
 class PageSelection(FlaskForm):
     chosen_page = SelectField( 
     choices=[('null','Choose a page')] + ([(route["route"], page) for page, route in pages.items() if page [:4] != "hide"]),
