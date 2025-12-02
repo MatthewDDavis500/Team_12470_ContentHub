@@ -152,7 +152,6 @@ for route_info in pages.values():
         function_name = route_info["app_function"]
         from_file = importlib.import_module(route_info["file"])
         app_function = getattr(from_file, function_name)
-        #[getattr(from_file, imp) for imp in route_info["import"]]
         def view_function(app_function=app_function):
             return render_template("return_to_main_page.html", template=app_function())
         app.add_url_rule(f"/{route_info['route']}", endpoint=function_name, view_func=view_function, methods=['GET', 'POST'])
