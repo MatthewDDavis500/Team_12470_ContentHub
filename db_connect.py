@@ -15,6 +15,12 @@ db_config = {
     'connect_timeout': 10  # Don't wait forever
 }
 
+print("--- DEBUGGING DB CONFIG ---")
+print(f"Host: {db_config['host']}")
+print(f"User: {db_config['user']}")
+print(f"Port: {db_config['port']}")
+print("---------------------------")
+
 # This is to create a pool (Keeps 3 connections open and ready to use)
 # This should run once when the app starts.
 try:
