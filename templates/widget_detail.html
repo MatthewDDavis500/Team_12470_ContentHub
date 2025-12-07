@@ -1,8 +1,22 @@
-<h1>{{ name }} - Details</h1>
-<a href="/dashboard">Back to Dashboard</a>
-<hr>
-<ul>
-    {% for key, value in data.items() %}
-        <li><strong>{{ key }}:</strong> {{ value }}</li>
-    {% endfor %}
-</ul>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {{bootstrap.load_css()}}
+</head>
+<body>
+    <h1>{{ name }} - Details</h1>
+    <a href="/dashboard">Back to Dashboard</a>
+    <hr>
+    <ul>
+        {% for key, value in data.items() %}
+            {% if 'img_' in key %}
+                <li><strong>{{ key[4:] }}:</strong><br>
+                <img src="{{ value }}" class = "w-25">
+                </li>
+            {% else %}
+                <li><strong>{{ key }}:</strong> {{ value }}</li>
+            {% endif %}
+        {% endfor %}
+    </ul>
+    {{ bootstrap.load_js() }}
+</body>

@@ -2,7 +2,9 @@ import requests
 import random
 import time
 import os
+import tempfile
 from dotenv import load_dotenv
+from PIL import Image
 
 load_dotenv()
 
@@ -224,6 +226,52 @@ def poke_search_detail(settings):
     except:
         return {"Error": "Could not load details"}
 
+def image_filter_summary(settings):
+    try:
+        return {"text": "Image Filter", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/Pencil_edit_icon.svg/640px-Pencil_edit_icon.svg.png"}
+    except:
+        return {"text": "Image Load Error", "image": ""}
+
+def image_filter_detail(settings):
+    try:
+        print (settings)
+        filter_type = get_setting(settings, 'filter', 'None')
+        file_path = get_setting(settings, 'image', 'static/images/penguin.jpg')
+        im = Image.open(file_path)
+        filtered_im = apply_filter(im.copy(), filter_type)
+        filtered_im.save('static/uploads/filtered_image.png', format='PNG')
+        return {
+            "Filter Applied": filter_type,
+            "img_Original Image": f'../{file_path}',
+            "img_Filtered Image": '../static/uploads/filtered_image.png'
+        }
+    except:
+        return {"Error": "Could not process image"}
+
+def apply_filter(im, filter_type):
+
+    if filter_type == 'grayscale':
+        filter_list = [((p[0]*299 + p[1]*587 + p[2]*114 )//1000, ) * 3 for p in im.getdata()]
+        im.putdata(filter_list)
+    elif filter_type == 'negative':
+        filter_list = [(255 - p[0], 255 - p[1], 255 - p[2]) for p in im.getdata()]
+        im.putdata(filter_list)
+    elif filter_type == 'sepia':
+        filter_list = []
+        for p in im.getdata():
+            r,g,b = p[0], p[1], p[2];
+            if r < 63:
+                r *= 1.1
+                b *= 0.9
+            elif r > 62 and r < 192:
+                r *= 1.15
+                b *= 0.85
+            else:
+                r *= 1.08
+                b *= 0.5
+            filter_list.append((int(r),int(g),int(b)))
+        im.putdata(filter_list)
+    return im
 
 # THE REGISTRY
 #  This dictionary tells the app which widgets exist.
@@ -253,6 +301,14 @@ WIDGET_REGISTRY = {
         "detail": poke_search_detail,
         "config": {
             "target_pokemon": "pikachu"
+        }
+    },
+    "Image Filtering": {
+        "summary": image_filter_summary,
+        "detail": image_filter_detail,
+        "config": {
+            "select_filter": ["grayscale", "negative", "sepia"],
+            "upload_image": ""
         }
     }
 }
