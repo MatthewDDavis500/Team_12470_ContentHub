@@ -1,0 +1,7 @@
+bootstrap-flask
+Flask
+Flask-WTF
+mysql-connector-python
+python-dotenv
+requests
+WTForms
