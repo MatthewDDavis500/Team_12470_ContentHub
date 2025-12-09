@@ -45,6 +45,7 @@ def fetch_with_cache(url):
     print(f">> Fetching fresh data from: {url}")
     try:
         if url[:27] == 'https://gutendex.com/books?':
+            # Gutendex API needs a little more time to fetch from large library of books
             response = requests.get(url, timeout=2.0)
         else:
             response = requests.get(url, timeout=0.5)
