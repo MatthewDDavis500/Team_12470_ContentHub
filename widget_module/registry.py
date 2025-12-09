@@ -256,11 +256,9 @@ def book_search_detail(settings):
         data = fetch_with_cache(url)
         return {
             "Total Number of Search Results": data['count'],
-            "Top Five Results": {
-                "Title1": data['results'][0]['title'],
-                "Title2": data['results'][1]['title'],
-                "Title3": data['results'][2]['title']
-            }
+            "First Result": data['results'][0]['title'],
+            "Second Result": data['results'][1]['title'],
+            "Third Result": data['results'][2]['title']
             # "Title": data['name'].capitalize(),
             # "ID": f"#{data['id']}",
             # "Types": types,
