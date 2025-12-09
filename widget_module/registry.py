@@ -42,7 +42,12 @@ def fetch_with_cache(url):
     # instead of freezing the webpage.
     print(f">> Fetching fresh data from: {url}")
     try:
-        response = requests.get(url, timeout=0.5)
+        if url[:27] == 'https://gutendex.com/books?':
+            response = requests.get(url, timeout=2.0)
+        else:
+            response = requests.get(url, timeout=0.5)
+
+
         if response.status_code == 200:
             json_data = response.json()
             # Save to cache
@@ -225,6 +230,38 @@ def poke_search_detail(settings):
         return {"Error": "Could not load details"}
 
 
+# WIDGET 4: BOOK SEARCH (User config to set the search term to use)
+# If no pokemon is specified, it defaults to "Pikachu"
+# ====================================================
+
+
+def book_search_summary(settings):
+    term = get_setting(settings, 'Search', 'N/A')
+    image = '../static/images/book_search_image.jpg'
+
+    return {
+        "text": f"Last Search: {term}",
+        "image": image
+    }
+
+
+def book_search_detail(settings):
+    term = get_setting(settings, 'search', '').lower().replace(' ', '%20')
+    url = f"https://gutendex.com/books?search={term}"
+
+    try:
+        data = fetch_with_cache(url)
+        return {
+            "Total results: ": data['count']
+            # "Title": data['name'].capitalize(),
+            # "ID": f"#{data['id']}",
+            # "Types": types,
+            # "Stats": "User Selected"
+        }
+    except:
+        return {"Error": "Search Failed."}
+
+
 # THE REGISTRY
 #  This dictionary tells the app which widgets exist.
 # ====================================================
@@ -253,6 +290,13 @@ WIDGET_REGISTRY = {
         "detail": poke_search_detail,
         "config": {
             "target_pokemon": "pikachu"
+        }
+    },
+    "Book Search": {
+        "summary": book_search_summary,
+        "detail": book_search_detail,
+        "config": {
+            "search": "N/A"
         }
     }
 }
