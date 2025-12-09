@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>News</title>
+</head>
+<body>
+    <h1>Latest News</h1>
+
+    <div class="news-widget">
+        <form method="POST">
+            <input type="text" name="news_input" placeholder="Search topic (e.g. Sports)" required>
+            <button type="submit">Get News</button>
+        </form>
+
+        <h3 style="margin-top:20px;">Showing results for: {{ search_term }}</h3>
+
+        {% if articles %}
+            {% for article in articles %}
+            <div class="article-card">
+                <a href="{{ article.link }}" target="_blank">
+                    <h3>{{ article.title }}</h3>
+                </a>
+                <p class="desc">{{ article.description|truncate(100) }}</p>
+                {% if article.image %}
+                    <img src="{{ article.image }}" alt="Article Image">
+                {% endif %}
+                <br>
+                <a href="{{ article.link }}" target="_blank" style="color:blue; font-size:0.8em;">Read more</a>
+            </div>
+            {% endfor %}
+        {% else %}
+            <p>No articles found. Try a different keyword.</p>
+        {% endif %}
+    </div>
+</body>
+</html>
