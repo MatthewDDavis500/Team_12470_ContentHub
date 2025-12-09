@@ -13,6 +13,9 @@
                 <li><strong>{{ key[4:] }}:</strong><br>
                 <img src="{{ value }}" class = "w-25">
                 </li>
+            {% elif value == '#line_break#' %}
+                <br>
+                <lh><strong>{{ key }}</strong></lh>
             {% else %}
                 <li><strong>{{ key }}:</strong> {{ value }}</li>
             {% endif %}

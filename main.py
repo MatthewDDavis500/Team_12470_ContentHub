@@ -1,9 +1,9 @@
 import importlib, requests, json, sys, os
 from pprint import pprint
-from flask import Flask, render_template, redirect, request, session
+from flask import Flask, render_template, redirect, request, session, flash
 from flask_bootstrap import Bootstrap5
 from flask_wtf import FlaskForm
-from wtforms import SelectField
+from wtforms import SelectField, StringField, SubmitField, PasswordField, validators
 from page_data import pages
 
 import db_connect
@@ -19,10 +19,116 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret_key'
 bootstrap = Bootstrap5(app)
 
+API_KEY_WEATHER = "c1dc9ea9c2388bec9e6448061862dbb4"
+def get_lat_lon(city_name):
+    geo_url = f"http://api.openweathermap.org/geo/1.0/direct?q={city_name}&limit=1&appid={API_KEY_WEATHER}"
+    response = requests.get(geo_url)
+    data = response.json()
+
+    if data:
+        return data[0]['lat'], data[0]['lon'], data[0]['name']
+    else:
+        return None, None, None
+
+def weather():
+    weather_data = None
+    if request.method == 'POST':
+        city = request.form.get('city_input')
+        if city:
+            lat, lon, name = get_lat_lon(city)
+            if lat and lon:
+                weather_url = f"https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={API_KEY_WEATHER}&units=imperial"
+                response = requests.get(weather_url)
+                api_data = response.json()
+                
+                weather_data = {
+                    "location": name,
+                    "temp": round(api_data['main']['temp']),
+                    "description": api_data['weather'][0]['description'].title(),
+                    "icon": api_data['weather'][0]['icon']
+                }
+
+    return render_template('weather.html', weather=weather_data)
+
 class PageSelection(FlaskForm):
     chosen_page = SelectField( 
     choices=[('null','Choose a page')] + ([(route["route"], page) for page, route in pages.items() if page [:4] != "hide"]),
     )
+
+class LogInForm(FlaskForm):
+    """
+        Flask Form for logging into an account
+    """
+
+    username = StringField(
+        'Username: ', 
+        validators=[validators.DataRequired()]
+    )
+
+    password = StringField(
+        'Password: ', 
+        validators=[validators.DataRequired()]
+    )
+
+def attempt_log_in(username, password, form):
+    # This is to handle login form submission
+    if request.method == 'POST':
+        conn = db_connect.get_db_connection()
+        # This function checks username/password and returns user data (it should be a dictionary that gets returned) if valid or None if invalid
+        user = login_user(conn, username, password)
+        conn.close()
+        
+        if user:
+            # Stores user info in the browser session (cookies) to keep them logged in.
+            print('3')
+            session['user_id'] = user['id']
+            session['username'] = user['username']
+            flash('Login successful.')
+            return redirect('/dashboard')
+        else:
+            flash('Login failed. Please try again.')
+  
+    return render_template('log_in_template.html', form=form)
+
+class SignUpForm(FlaskForm):
+    """
+        Flask Form for signing up for an account
+    """
+
+    username = StringField(
+        'Username: ', 
+        validators=[validators.DataRequired()]
+    )
+
+    password = PasswordField(
+        'Password: ', 
+        validators=[validators.DataRequired(), validators.Length(min=6)]
+    )
+
+    confirmPassword = PasswordField(
+        'Confirm Password: ', 
+        validators=[validators.DataRequired(), validators.Length(min=6)]
+    )
+
+
+def attempt_sign_up(username, password, confirmPassword, form):
+    # password and confirmPassword must match
+    if(password != confirmPassword):
+        flash('Passwords must match.')
+        return render_template('sign_up_template.html', form = form)
+
+    conn = db_connect.get_db_connection()
+    # 'signup_user' tries to insert a new row into users table (this is handled by the function).
+    # It returns False if the username is already taken.
+    success = signup_user(conn, username, password)
+    conn.close()
+
+    if success:
+        return redirect('/login')
+    else:
+        flash('Sign up failed. Please try again.')
+        return render_template('sign_up_template.html', form = form)
+
 
 @app.route('/', methods=('GET', 'POST'))
 def main():
@@ -37,35 +143,18 @@ def main():
 # --- These Are The Auth and Dashboard Routes --- (can be change as needed, was mainly used for testing)
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    # This is to handle login form submission
-    if request.method == 'POST':
-        conn = db_connect.get_db_connection()
-        # This function checks username/password and returns user data (it should be a dictionary that gets returned) if valid or None if invalid
-        user = login_user(conn, request.form['username'], request.form['password'])
-        conn.close()
-        
-        if user:
-            # Stores user info in the browser session (cookies) to keep them logged in.
-            session['user_id'] = user['id']
-            session['username'] = user['username']
-            return redirect('/dashboard')
-        else:
-            return "Login Failed. <a href='/login'>Try again</a>"
-    return render_template('login.html')
+    form = LogInForm()
+    if request.method == 'POST' and form.validate_on_submit():
+        return attempt_log_in(form.username.data, form.password.data, form)
+    return render_template('log_in_template.html', form=form)
+    
 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
-    if request.method == 'POST':
-        conn = db_connect.get_db_connection()
-        # 'signup_user' tries to insert a new row into users table (this is handled by the function).
-        # It returns False if the username is already taken.
-        success = signup_user(conn, request.form['username'], request.form['password'])
-        conn.close()
-        if success:
-            return redirect('/login')
-        else:
-            return "Username taken."
-    return render_template('signup.html')
+    form = SignUpForm()
+    if request.method == 'POST' and form.validate_on_submit():
+        return attempt_sign_up(form.username.data, form.password.data, form.confirmPassword.data, form)
+    return render_template('sign_up_template.html', form=form)
 
 @app.route('/dashboard', methods=['GET', 'POST'])
 def dashboard():
@@ -153,6 +242,7 @@ for route_info in pages.values():
         function_name = route_info["app_function"]
         from_file = importlib.import_module(route_info["file"])
         app_function = getattr(from_file, function_name)
+        #[getattr(from_file, imp) for imp in route_info["import"]]
         def view_function(app_function=app_function):
             return render_template("return_to_main_page.html", template=app_function())
         app.add_url_rule(f"/{route_info['route']}", endpoint=function_name, view_func=view_function, methods=['GET', 'POST'])
