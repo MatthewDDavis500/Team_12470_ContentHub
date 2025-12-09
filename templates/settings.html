@@ -16,13 +16,24 @@
             </div>
             <div class="card-body">
 
-                <form method="POST">
-                    {% for field_key, default_val in fields.items() %}
-                    <div class="mb-3">
-                        <label class="form-label text-capitalize">{{ field_key }}</label>
-                        <input type="text" class="form-control" name="{{ field_key }}"
-                            value="{{ values.get(field_key, default_val) }}" placeholder="Enter {{ field_key }}...">
-                    </div>
+                <form method="POST" enctype="multipart/form-data">
+                    {% for field_key, val in fields.items() %}
+                        <div class="mb-3">
+                        {% if 'upload_' in field_key %}
+                            <label class="form-label text-capitalize">{{ field_key[7:] }}</label>
+                            <input type="file" class="form-control" name="{{ field_key[7:] }}" required> 
+                        {% elif 'select_' in field_key %}
+                            <label class="form-label text-capitalize">{{ field_key[7:] }}</label>
+                            <select type="text" class="form-select" name="{{ field_key[7:] }}">
+                                {% for option in val %}
+                                    <option value="{{ option }}"> {{ option }}</option>
+                                {% endfor %}
+                        {% else %}
+                            <label class="form-label text-capitalize">{{ field_key }}</label>
+                            <input type="text" class="form-control" name="{{ field_key }}"
+                            value="{{ values.get(field_key, val) }}" placeholder="Enter {{ field_key }}...">
+                        {% endif %}
+                        </div>
                     {% endfor %}
 
                     <div class="d-grid gap-2">

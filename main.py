@@ -220,7 +220,8 @@ def widget_settings(instance_id):
         # This is to save the form data
         # converts request.form (ImmutableDict) to a regular dict
         form_data = request.form.to_dict()
-        save_widget_settings(conn, instance_id, form_data)
+        # Include any uploaded files so they can be saved to disk and stored
+        save_widget_settings(conn, instance_id, form_data, request.files)
         conn.close()
         return redirect('/dashboard')
     

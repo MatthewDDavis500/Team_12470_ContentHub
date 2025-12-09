@@ -45,7 +45,7 @@ def get_widget_settings(conn, user_widget_id):
     Saves form data into the settings table. Or at least it should. 
 """
 
-def save_widget_settings(conn, user_widget_id, form_data):
+def save_widget_settings(conn, user_widget_id, form_data, files={}):
 
     cursor = conn.cursor()
     # Clear old settings for this widget this should prevent duplicates
@@ -56,7 +56,7 @@ def save_widget_settings(conn, user_widget_id, form_data):
 
     # Inserts the new settings
     for key, value in form_data.items():
-        if value and value.strip():
+        if value and isinstance(value, str) and value.strip():
             cursor.execute(
                 """
                 INSERT INTO user_widget_settings (user_widget_id, setting_name, setting_value)
@@ -64,6 +64,20 @@ def save_widget_settings(conn, user_widget_id, form_data):
                 """,
                 (user_widget_id, key, value),
             )
+    
+    for key, new_file in files.items():
+        if new_file.filename == '':
+            continue  # No file uploaded for this field
+        file_path = f'static/uploads/{new_file.filename}'
+        new_file.save(file_path)
+        cursor.execute(
+            """
+                INSERT INTO user_widget_settings (user_widget_id, setting_name, setting_value)
+                VALUES (%s, %s, %s)
+            """,
+            (user_widget_id, key, file_path),
+        )
+
     conn.commit()
 
 """
