@@ -44,7 +44,12 @@ def fetch_with_cache(url):
     # instead of freezing the webpage.
     print(f">> Fetching fresh data from: {url}")
     try:
-        response = requests.get(url, timeout=0.5)
+        if url[:27] == 'https://gutendex.com/books?':
+            response = requests.get(url, timeout=2.0)
+        else:
+            response = requests.get(url, timeout=0.5)
+
+
         if response.status_code == 200:
             json_data = response.json()
             # Save to cache
@@ -377,31 +382,6 @@ WIDGET_REGISTRY = {
         "detail": poke_search_detail,
         "config": {
             "target_pokemon": "pikachu"
-        }
-    },
-    "Image Filtering": {
-        "summary": image_filter_summary,
-        "detail": image_filter_detail,
-        "config": {
-            "upload_image": "image_filtering_original.png",
-            "select_filter": ["grayscale", "negative", "sepia"],
-        }
-    },
-    "Image Display": {
-        "summary": image_display_summary,
-        "detail": image_display_detail,
-        "config": {
-            "upload_image 1": "image_display_1.png",
-            "upload_image 2": "image_display_2.png",
-            "upload_image 3": "image_display_3.png",
-            "upload_image 4": "image_display_4.png",
-        }
-    },
-    "News Feed": {
-        "summary": news_summary,
-        "detail": news_detail,
-        "config": {
-            "country": "us"
         }
     }
 }
