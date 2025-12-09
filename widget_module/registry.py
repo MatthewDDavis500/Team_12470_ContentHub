@@ -231,6 +231,44 @@ def poke_search_detail(settings):
     except:
         return {"Error": "Could not load details"}
 
+<<<<<<< HEAD
+=======
+
+# WIDGET 4: BOOK SEARCH (User config to set the search term to use)
+# If no pokemon is specified, it defaults to "Pikachu"
+# ====================================================
+
+
+def book_search_summary(settings):
+    term = get_setting(settings, 'Search', 'N/A')
+    image = '../static/images/book_search_image.jpg'
+
+    return {
+        "text": f"Last Search: {term}",
+        "image": image
+    }
+
+
+def book_search_detail(settings):
+    term = get_setting(settings, 'search', '').lower().replace(' ', '%20')
+    url = f"https://gutendex.com/books?search={term}"
+
+    try:
+        data = fetch_with_cache(url)
+        return {
+            "Total Number of Search Results": data['count'],
+            "First Result": data['results'][0]['title'],
+            "Second Result": data['results'][1]['title'],
+            "Third Result": data['results'][2]['title']
+            # "Title": data['name'].capitalize(),
+            # "ID": f"#{data['id']}",
+            # "Types": types,
+            # "Stats": "User Selected"
+        }
+    except:
+        return {"Error": "Search Failed."}
+
+>>>>>>> fe8a7cd (Changed format for detail return)
 def image_filter_summary(settings):
     try:
         return {"text": "Image Filter", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/Pencil_edit_icon.svg/640px-Pencil_edit_icon.svg.png"}
