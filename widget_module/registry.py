@@ -233,8 +233,8 @@ def poke_search_detail(settings):
         return {"Error": "Could not load details"}
 
 
-# WIDGET 4: BOOK SEARCH (User config to set the search term to use)
-# If no pokemon is specified, it defaults to "Pikachu"
+# WIDGET 5: BOOK SEARCH (User config to set the search term to use)
+# If no previous searches, defaults to empty search
 # ====================================================
 
 
@@ -250,20 +250,37 @@ def book_search_summary(settings):
 
 def book_search_detail(settings):
     term = get_setting(settings, 'search', '').lower().replace(' ', '%20')
-    url = f"https://gutendex.com/books?search={term}"
+    url = f"https://gutendex.com/books?search={term}&languages=en"
 
     try:
         data = fetch_with_cache(url)
-        return {
-            "Total Number of Search Results": data['count'],
-            "First Result": data['results'][0]['title'],
-            "Second Result": data['results'][1]['title'],
-            "Third Result": data['results'][2]['title']
-            # "Title": data['name'].capitalize(),
-            # "ID": f"#{data['id']}",
-            # "Types": types,
-            # "Stats": "User Selected"
+
+        detail_result = {
+            "Total Number of Search Results": data['count']
         }
+
+        for i, book in enumerate(data['results']):
+            author_string = ''
+            for j, author in enumerate(book['authors']):
+                # format name
+                name = author['name']
+                name = name[(name.find(',') + 2):] + ' ' + name[:(name.find(','))]
+                
+                # add to string of authors
+                if j < len(book['authors']) - 1:
+                    author_string = author_string + name + ', '
+                else:
+                    author_string = author_string + name
+            
+            book_details = {
+                f"Result {i+1}": '#line_break#',
+                f"({i+1}) Title": book['title'],
+                f"({i+1}) Authors": author_string,
+                f"({i+1}) Download Count": book['download_count']
+            }
+            detail_result.update(book_details)
+
+        return detail_result
     except:
         return {"Error": "Search Failed."}
 
