@@ -312,6 +312,7 @@ def news_summary(settings):
 
     try:
         data = fetch_with_cache(url)
+<<<<<<< HEAD
         
         if data.get('status') != 'success':
             return {"text": "API Key Error", "image": ""}
@@ -352,6 +353,20 @@ def news_detail(settings):
             details[f"Story {i+1} ({source})"] = article['title']
             
         return details
+=======
+        return {
+            "Total Number of Search Results": data['count'],
+            "Top Five Results": {
+                "Title1": data['results'][0]['title'],
+                "Title2": data['results'][1]['title'],
+                "Title3": data['results'][2]['title']
+            }
+            # "Title": data['name'].capitalize(),
+            # "ID": f"#{data['id']}",
+            # "Types": types,
+            # "Stats": "User Selected"
+        }
+>>>>>>> 5947760 (More work on the widget details)
     except:
         return {"Error": "Could not fetch news details"}
     
