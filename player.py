@@ -12,14 +12,6 @@ author = "https://accounts.spotify.com/authorize"
 token_url = "https://accounts.spotify.com/api/token"
 api_base = "https://api.spotify.com/v1"
 
-TOP_TRACKS = [
-    "3n3Ppam7vgaVa1iaRUc9Lp",
-    "7qiZfU4dY1lWllzX7mPBI3",
-    "2takcwOaAZWiXQijPHIx7B",
-    "1uNFoZAHBGtllmzznpCI3s",
-    "0VjIjW4GlUZAMYd2vXMi3b"
-]
-
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -69,14 +61,14 @@ def topsongs():
 
     top_tracks = []
     if not results:
-        TOP_TRACKS = [
+        top = [
             "0je57Uq5eTk1wrPzn9sWbl",
             "3yWuTOYDztXjZxdE2cIRUa",
             "2plbrEY59IikOBgBGLjaoe",
             "2X3DlOF546VuOJLPu7hn9J",
             "6CcmabfR68aD0jtjSVS8sy"
         ]
-        track_ids = ",".join(TOP_TRACKS)
+        track_ids = ",".join(top)
         resp = requests.get(f"{api_base}/tracks?ids={track_ids}", headers=headers).json()
         top_tracks = [t for t in resp.get("tracks", []) if t and t.get("album") and t["album"].get("images")]
 
@@ -112,7 +104,4 @@ def search():
         params = {"q": query, "type": "track", "limit": 10}
         results = requests.get(f"{api_base}/search", headers=headers, params=params).json()
     return render_template("search.html", results=results)
-
-if __name__ == "__main__":
-    app.run(debug=True)
 
