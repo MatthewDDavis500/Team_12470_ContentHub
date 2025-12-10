@@ -291,8 +291,9 @@ def player_summary(settings):
         return{"text": "Player Error"}
 def player_details(settings):
     try:
-        return{"Open MiniPlayer": "/topsongs", "image": }
-    
+        return{"Open MiniPlayer": "/topsongs", "image": '../static/images/spoty.jpg'}
+    except:
+        return{"text": "Error"}
 
 def image_filter_summary(settings):
     try:
