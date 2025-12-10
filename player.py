@@ -4,13 +4,13 @@ import requests, base64
 app = Flask(__name__)
 app.secret_key = "your_secret_key"
 
-CLIENT_ID = "8cb539019c48459192299f633e81346d"
-CLIENT_SECRET = "99851631079b4f9b8b69c91c0f18b18e"
-REDIRECT_URI = "http://127.0.0.1:5000/callback"
+client_id = "8cb539019c48459192299f633e81346d"
+client_secret = "99851631079b4f9b8b69c91c0f18b18e"
+redirect_url = "http://127.0.0.1:5000/callback"
 
-SPOTIFY_AUTH_URL = "https://accounts.spotify.com/authorize"
-SPOTIFY_TOKEN_URL = "https://accounts.spotify.com/api/token"
-SPOTIFY_API_BASE = "https://api.spotify.com/v1"
+author = "https://accounts.spotify.com/authorize"
+token_url = "https://accounts.spotify.com/api/token"
+api_base = "https://api.spotify.com/v1"
 
 TOP_TRACKS = [
     "3n3Ppam7vgaVa1iaRUc9Lp",
@@ -28,8 +28,8 @@ def index():
 def login():
     scope = "user-read-private user-read-email"
     auth_url = (
-        f"{SPOTIFY_AUTH_URL}?client_id={CLIENT_ID}"
-        f"&response_type=code&redirect_uri={REDIRECT_URI}"
+        f"{author}?client_id={client_id}"
+        f"&response_type=code&redirect_uri={redirect_url}"
         f"&scope={scope}"
     )
     return redirect(auth_url)
@@ -37,7 +37,7 @@ def login():
 @app.route("/callback")
 def callback():
     code = request.args.get("code")
-    auth_header = base64.b64encode(f"{CLIENT_ID}:{CLIENT_SECRET}".encode()).decode()
+    auth_header = base64.b64encode(f"{client_id}:{client_secret}".encode()).decode()
     headers = {
         "Authorization": f"Basic {auth_header}",
         "Content-Type": "application/x-www-form-urlencoded"
@@ -45,9 +45,9 @@ def callback():
     data = {
         "grant_type": "authorization_code",
         "code": code,
-        "redirect_uri": REDIRECT_URI
+        "redirect_uri": redirect_url
     }
-    token_resp = requests.post(SPOTIFY_TOKEN_URL, headers=headers, data=data).json()
+    token_resp = requests.post(token_url, headers=headers, data=data).json()
     session["access_token"] = token_resp.get("access_token")
     return redirect("/topsongs")
 
@@ -60,12 +60,12 @@ def topsongs():
     headers = {"Authorization": f"Bearer {token}"}
     results = None
 
-    # If the user submitted a search
+   
     if request.method == "POST":
         query = request.form.get("query", "")
         if query:
             params = {"q": query, "type": "track", "limit": 10}
-            results = requests.get(f"{SPOTIFY_API_BASE}/search", headers=headers, params=params).json()
+            results = requests.get(f"{api_base}/search", headers=headers, params=params).json()
 
     top_tracks = []
     if not results:
@@ -77,7 +77,7 @@ def topsongs():
             "6CcmabfR68aD0jtjSVS8sy"
         ]
         track_ids = ",".join(TOP_TRACKS)
-        resp = requests.get(f"{SPOTIFY_API_BASE}/tracks?ids={track_ids}", headers=headers).json()
+        resp = requests.get(f"{api_base}/tracks?ids={track_ids}", headers=headers).json()
         top_tracks = [t for t in resp.get("tracks", []) if t and t.get("album") and t["album"].get("images")]
 
     return render_template("topsongs.html", results=results, top_tracks=top_tracks)
@@ -87,7 +87,7 @@ def topsongs():
 def player(spotify_id):
     token = session.get("access_token")
     headers = {"Authorization": f"Bearer {token}"}
-    track_data = requests.get(f"{SPOTIFY_API_BASE}/tracks/{spotify_id}", headers=headers).json()
+    track_data = requests.get(f"{api_base}/tracks/{spotify_id}", headers=headers).json()
 
     embed_url = f"https://open.spotify.com/embed/track/{spotify_id}"
 
@@ -110,8 +110,9 @@ def search():
         query = request.form["query"]
         headers = {"Authorization": f"Bearer {token}"}
         params = {"q": query, "type": "track", "limit": 10}
-        results = requests.get(f"{SPOTIFY_API_BASE}/search", headers=headers, params=params).json()
+        results = requests.get(f"{api_base}/search", headers=headers, params=params).json()
     return render_template("search.html", results=results)
 
 if __name__ == "__main__":
     app.run(debug=True)
+
