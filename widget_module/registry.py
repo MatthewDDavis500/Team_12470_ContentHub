@@ -284,6 +284,16 @@ def book_search_detail(settings):
     except:
         return {"Error": "Search Failed."}
 
+def player_summary(settings):
+    try:
+        return{ "text": "MiniPlayer"}
+    except:
+        return{"text": "Player Error"}
+def player_details(settings):
+    try:
+        return{"Open MiniPlayer": "/topsongs", "image": }
+    
+
 def image_filter_summary(settings):
     try:
         return {"text": "Image Filter", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/Pencil_edit_icon.svg/640px-Pencil_edit_icon.svg.png"}
@@ -375,5 +385,10 @@ WIDGET_REGISTRY = {
             "select_filter": ["grayscale", "negative", "sepia"],
             "upload_image": ""
         }
-    }
+    },
+    "MiniPlayer": {
+    "summary": player_summary,
+    "detail": player_detail,
+    "config": {}  
+    } 
 }
