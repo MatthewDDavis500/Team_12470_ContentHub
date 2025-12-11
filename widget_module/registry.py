@@ -286,12 +286,13 @@ def book_search_detail(settings):
 
 def player_summary(settings):
     try:
-        return{ "text": "MiniPlayer"}
+        return{ "text": "MiniPlayer", "image": '../static/images/spoty.png'}
     except:
         return{"text": "Player Error"}
 def player_details(settings):
-    try:
-        return{"Open MiniPlayer": "/topsongs", "image": '../static/images/spoty.jpg'}
+    return {
+        "Launch Player": '<a href="/topsongs"><button style="padding:10px 20px;">Launch Player</button></a>'
+    }
     except:
         return{"text": "Error"}
 
