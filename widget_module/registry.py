@@ -44,7 +44,13 @@ def fetch_with_cache(url):
     # instead of freezing the webpage.
     print(f">> Fetching fresh data from: {url}")
     try:
-        response = requests.get(url, timeout=0.5)
+        if url[:27] == 'https://gutendex.com/books?':
+            # Gutendex API needs a little more time to fetch from large library of books
+            response = requests.get(url, timeout=2.0)
+        else:
+            response = requests.get(url, timeout=0.5)
+
+
         if response.status_code == 200:
             json_data = response.json()
             # Save to cache
@@ -225,6 +231,58 @@ def poke_search_detail(settings):
     except:
         return {"Error": "Could not load details"}
 
+
+# WIDGET 5: BOOK SEARCH (User config to set the search term to use)
+# If no previous searches, defaults to empty search
+# ====================================================
+
+
+def book_search_summary(settings):
+    term = get_setting(settings, 'Search', 'N/A')
+    image = '../static/images/book_search_image.jpg'
+
+    return {
+        "text": f"Last Search: {term}",
+        "image": image
+    }
+
+
+def book_search_detail(settings):
+    term = get_setting(settings, 'search', '').lower().replace(' ', '%20')
+    url = f"https://gutendex.com/books?search={term}&languages=en"
+
+    try:
+        data = fetch_with_cache(url)
+
+        detail_result = {
+            "Total Number of Search Results": data['count']
+        }
+
+        for i, book in enumerate(data['results']):
+            author_string = ''
+            for j, author in enumerate(book['authors']):
+                # format name
+                name = author['name']
+                name = name[(name.find(',') + 2):] + ' ' + name[:(name.find(','))]
+                
+                # add to string of authors
+                if j < len(book['authors']) - 1:
+                    author_string = author_string + name + ', '
+                else:
+                    author_string = author_string + name
+            
+            book_details = {
+                f"Result {i+1}": '#line_break#',
+                f"({i+1}) Title": book['title'],
+                f"({i+1}) Authors": author_string,
+                f"({i+1}) Download Count": book['download_count']
+            }
+            detail_result.update(book_details)
+
+        return detail_result
+    except:
+        return {"Error": "Search Failed."}
+
 def image_filter_summary(settings):
     try:
         return {"text": "Image Filter", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/Pencil_edit_icon.svg/640px-Pencil_edit_icon.svg.png"}
@@ -351,6 +409,13 @@ WIDGET_REGISTRY = {
         "detail": poke_search_detail,
         "config": {
             "target_pokemon": "pikachu"
+        }
+    },
+    "Book Search": {
+        "summary": book_search_summary,
+        "detail": book_search_detail,
+        "config": {
+            "search": "N/A"
         }
     },
     "Image Filtering": {

@@ -1,6 +1,6 @@
 # input page name and page route here
 pages = {
-    "weather page" : {"file": "weather", 
+    "weather page" : {"file": "home", 
                       "app_function": "weather",
                       "route": "weather_page"},
     "news page" : {"file": "news",

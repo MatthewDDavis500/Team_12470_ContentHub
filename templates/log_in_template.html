@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Content Hub</title>
+
+    <style>
+        * {
+            text-align: center;
+        }
+
+        .fading_target {
+            opacity: 1;
+            animation: fade 5s linear forwards;
+            background-color: lightcoral;
+            width: 20%;
+            border-radius: 5px;
+            margin: auto;
+        }
+
+        @keyframes fade {
+            0%,100% { opacity: 0 }
+            50% { opacity: 1 }
+        }
+    </style>
+
+    {{bootstrap.load_css()}}
+</head>
+<body>
+    <br><br><br>
+    <h1>Welcome to the Content Hub</h1>
+    <h2>Please Log In</h2>
+
+    <br><br>
+
+    <form method="POST" action="/login">
+        {{ form.csrf_token }}
+        {{ form.username.label }} 
+        {{ form.username(size=32) }}
+        <br><br>
+        {{ form.password.label }} 
+        {{ form.password(size=32) }}
+        <br><br>
+        <input type="submit" value="Submit">
+    </form>
+
+
+    <br><br><br><br>
+    <a href="{{ url_for('signup') }}">Don't have an account?</a>
+
+    <br><br><br><br>
+
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for message in messages %}
+                <p class="fading_target">{{ message }}</p>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+</body>
+</html>
