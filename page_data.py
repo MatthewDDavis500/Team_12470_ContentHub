@@ -2,6 +2,8 @@
 pages = {
     "weather page" : {"file": "home", 
                       "app_function": "weather",
-                      "route": "weather",
-                      "import": ["get_lat_lon", "API_KEY_WEATHER"]},
-    }
+                      "route": "weather_page"},
+    "news page" : {"file": "news",
+                    "app_function": "news",
+                    "route": "news_page"}
+}
