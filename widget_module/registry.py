@@ -389,7 +389,7 @@ WIDGET_REGISTRY = {
     },
     "MiniPlayer": {
     "summary": player_summary,
-    "detail": player_detail,
+    "detail": player_details,
     "config": {}  
     } 
 }
