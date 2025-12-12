@@ -28,6 +28,7 @@
                                 {% for option in val %}
                                     <option value="{{ option }}"> {{ option }}</option>
                                 {% endfor %}
+                            </select>
                         {% elif 'hidden_' in field_key %}
                             <!-- Don't show hidden values in form -->
                         {% else %}
