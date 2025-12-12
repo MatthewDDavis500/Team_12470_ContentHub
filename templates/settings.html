@@ -28,6 +28,8 @@
                                 {% for option in val %}
                                     <option value="{{ option }}"> {{ option }}</option>
                                 {% endfor %}
+                        {% elif 'hidden_' in field_key %}
+                            <!-- Don't show hidden values in form -->
                         {% else %}
                             <label class="form-label text-capitalize">{{ field_key }}</label>
                             <input type="text" class="form-control" name="{{ field_key }}"

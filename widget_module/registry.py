@@ -238,7 +238,7 @@ def poke_search_detail(settings):
 
 
 def book_search_summary(settings):
-    term = get_setting(settings, 'Search', 'N/A')
+    term = get_setting(settings, 'search', 'N/A')
     image = '../static/images/book_search_image.jpg'
 
     return {
@@ -381,6 +381,62 @@ def news_detail(settings):
     except:
         return {"Error": "Could not fetch news details"}
     
+
+    # WIDGET 7: Is This My Card? (User config for guessing a card and storing score)
+    # ====================================================
+
+
+def card_guess_summary(settings):
+    guess = get_setting(settings, 'guess', 'N/A')
+    score = get_setting(settings, 'hidden_score', -1)
+    image = '../static/images/card_guess_image.png'
+
+    if guess['rank'] != '' and guess != 'N/A':
+        return {
+            "text": f"Current Guess: {guess['rank']} of {guess['suit']}\nCurrent Score: {score}",
+            "image": image
+        }
+    else:
+        return {
+            "text": f"No Current Guess",
+            "image": image
+        }
+
+def card_guess_detail(settings):
+    guess = get_setting(settings, 'guess', 'N/A')
+    url = f"https://deckofcardsapi.com/api/deck/new/draw/?count=1"
+
+    if guess['rank'] != '' and guess != 'N/A':
+        try:
+            data = fetch_with_cache(url)
+
+            if not data['success']:
+                return {"Error": "Dealer forgot the deck at home."}
+
+            if (data['cards']['value'] == guess['rank']) and (data['cards']['suit'] == guess['suit']):
+                WIDGET_REGISTRY['Is This My Card?']['config']['hidden_score'] += 5
+                return {
+                    f"YES, that WAS your card!": '#line_break#',
+                    "img_": data['cards']['image'],
+                    "Your Card": f'{data['cards']['value']} of {data['cards']['suit']}',
+                    "Your Guess": f'{guess['rank']} of {guess['suit']}'
+                }
+            else:
+                WIDGET_REGISTRY['Is This My Card?']['config']['hidden_score'] -= 1
+                return {
+                    f"NO, that was NOT your card!": '#line_break#',
+                    "img_": data['cards']['image'],
+                    "Your Card": f'{data['cards']['value']} of {data['cards']['suit']}',
+                    "Your Guess": f'{guess['rank']} of {guess['suit']}'
+                }
+        except:
+            return {"Error": "Dealer is playing '52 Card Pickup'."}
+    else:
+        return {
+            f"Please make a guess in the config menu.": '#line_break#'
+        }
+
+
 # THE REGISTRY
 #  This dictionary tells the app which widgets exist.
 # ====================================================
@@ -431,6 +487,34 @@ WIDGET_REGISTRY = {
         "detail": news_detail,
         "config": {
             "country": "us"
+        }
+    },
+    "Is This My Card?": {
+        "summary": card_guess_summary,
+        "detail": card_guess_detail,
+        "config": {
+            "hidden_score": 0,
+            "select_rank": [
+                "ACE",
+                "2",
+                "3",
+                "4",
+                "5",
+                "6",
+                "7",
+                "8",
+                "9",
+                "10",
+                "JACK",
+                "QUEEN",
+                "KING"
+            ],
+            "select_suit": [
+                "CLUBS",
+                "DIAMONDS",
+                "SPADES",
+                "HEARTS"
+            ]
         }
     }
 }
