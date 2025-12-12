@@ -65,18 +65,11 @@ def save_widget_settings(conn, user_widget_id, form_data, files={}):
                 (user_widget_id, key, value),
             )
     
-    for key, new_file in files.items():
+    for name, new_file in files.items():
         if new_file.filename == '':
             continue  # No file uploaded for this field
-        file_path = f'static/uploads/{new_file.filename}'
+        file_path = f'static/uploads/{name}'
         new_file.save(file_path)
-        cursor.execute(
-            """
-                INSERT INTO user_widget_settings (user_widget_id, setting_name, setting_value)
-                VALUES (%s, %s, %s)
-            """,
-            (user_widget_id, key, file_path),
-        )
 
     conn.commit()
 

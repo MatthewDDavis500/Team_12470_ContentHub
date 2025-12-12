@@ -234,19 +234,45 @@ def image_filter_summary(settings):
 
 def image_filter_detail(settings):
     try:
-        print (settings)
         filter_type = get_setting(settings, 'filter', 'None')
-        file_path = get_setting(settings, 'image', 'static/images/penguin.jpg')
-        im = Image.open(file_path)
+        original_file_path = "static/uploads/image_filtering_original.png"
+        filtered_file_path = 'static/uploads/image_filtering_filtered.png'
+        im = Image.open(original_file_path)
         filtered_im = apply_filter(im.copy(), filter_type)
-        filtered_im.save('static/uploads/filtered_image.png', format='PNG')
+        filtered_im.save(filtered_file_path, format='PNG')
         return {
             "Filter Applied": filter_type,
-            "img_Original Image": f'../{file_path}',
-            "img_Filtered Image": '../static/uploads/filtered_image.png'
+            "img_Original Image": f'../{original_file_path}',
+            "img_Filtered Image": f'../{filtered_file_path}'
         }
     except:
         return {"Error": "Could not process image"}
+
+def image_display_summary(settings):
+    try:
+        for i in ['1','2','3','4']:
+            file_path = f"static/uploads/image_display_{i}.png"
+            if os.path.exists(file_path):
+                return {"text": "Image Display", "image": file_path}
+        return {"text": "No images created", "image": ""}
+    except:
+        return {"text": "Image Load Error", "image": ""}
+
+
+def image_display_detail(settings):
+    try:
+        images = {}
+        for i in ['1','2','3','4']:
+            file_path = f"static/uploads/image_display_{i}.png"
+            if os.path.exists(file_path):
+                images[f"img_Image {i}"] = f'../{file_path}'
+        if images == {}:
+            return {"Error": "No images to display"}
+        else:
+            return images
+    except:
+        return {"Error": "Could not load images"}
+                
 
 def apply_filter(im, filter_type):
 
@@ -307,8 +333,18 @@ WIDGET_REGISTRY = {
         "summary": image_filter_summary,
         "detail": image_filter_detail,
         "config": {
+            "upload_image": "image_filtering_original.png",
             "select_filter": ["grayscale", "negative", "sepia"],
-            "upload_image": ""
         }
-    }
+    },
+    "Image Display": {
+        "summary": image_display_summary,
+        "detail": image_display_detail,
+        "config": {
+            "upload_image 1": "image_display_1.png",
+            "upload_image 2": "image_display_2.png",
+            "upload_image 3": "image_display_3.png",
+            "upload_image 4": "image_display_4.png",
+        }
+    },
 }

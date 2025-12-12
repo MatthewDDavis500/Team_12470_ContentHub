@@ -21,13 +21,14 @@
                         <div class="mb-3">
                         {% if 'upload_' in field_key %}
                             <label class="form-label text-capitalize">{{ field_key[7:] }}</label>
-                            <input type="file" class="form-control" name="{{ field_key[7:] }}" required> 
+                            <input type="file" class="form-control" name="{{ val }}"> 
                         {% elif 'select_' in field_key %}
                             <label class="form-label text-capitalize">{{ field_key[7:] }}</label>
                             <select type="text" class="form-select" name="{{ field_key[7:] }}">
                                 {% for option in val %}
                                     <option value="{{ option }}"> {{ option }}</option>
                                 {% endfor %}
+                            </select>
                         {% else %}
                             <label class="form-label text-capitalize">{{ field_key }}</label>
                             <input type="text" class="form-control" name="{{ field_key }}"
