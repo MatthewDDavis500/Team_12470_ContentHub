@@ -44,7 +44,7 @@ def callback():
 def topsongs():
     token = session.get("access_token")
     if not token:
-        return redirect("/")
+        return redirect("/music_login")
 
     headers = {"Authorization": f"Bearer {token}"}
     results = None
@@ -101,5 +101,6 @@ def search():
         params = {"q": query, "type": "track", "limit": 10}
         results = requests.get(f"{api_base}/search", headers=headers, params=params).json()
     return render_template("search.html", results=results)
+
 
 
