@@ -1,9 +1,6 @@
 from flask import Flask, render_template, redirect, request, session
 import requests, base64
 
-app = Flask(__name__)
-app.secret_key = "your_secret_key"
-
 client_id = "8cb539019c48459192299f633e81346d"
 client_secret = "99851631079b4f9b8b69c91c0f18b18e"
 redirect_url = "http://127.0.0.1:5000/callback"
@@ -12,12 +9,12 @@ author = "https://accounts.spotify.com/authorize"
 token_url = "https://accounts.spotify.com/api/token"
 api_base = "https://api.spotify.com/v1"
 
-@app.route("/")
+#@app.route("/")
 def index():
     return render_template("index.html")
 
-@app.route("/login")
-def login():
+#@app.route("/login")
+def music_login():
     scope = "user-read-private user-read-email"
     auth_url = (
         f"{author}?client_id={client_id}"
@@ -26,7 +23,7 @@ def login():
     )
     return redirect(auth_url)
 
-@app.route("/callback")
+#@app.route("/callback")
 def callback():
     code = request.args.get("code")
     auth_header = base64.b64encode(f"{client_id}:{client_secret}".encode()).decode()
@@ -43,7 +40,7 @@ def callback():
     session["access_token"] = token_resp.get("access_token")
     return redirect("/topsongs")
 
-@app.route("/topsongs", methods=["GET", "POST"])
+#@app.route("/topsongs", methods=["GET", "POST"])
 def topsongs():
     token = session.get("access_token")
     if not token:
@@ -75,7 +72,7 @@ def topsongs():
     return render_template("topsongs.html", results=results, top_tracks=top_tracks)
 
 
-@app.route("/player/<spotify_id>")
+#@app.route("/player/<spotify_id>")
 def player(spotify_id):
     token = session.get("access_token")
     headers = {"Authorization": f"Bearer {token}"}
@@ -91,7 +88,7 @@ def player(spotify_id):
         track_image=track_data["album"]["images"][0]["url"]
     )
 
-@app.route("/search", methods=["GET", "POST"])
+#@app.route("/search", methods=["GET", "POST"])
 def search():
     token = session.get("access_token")
     if not token:
@@ -104,4 +101,5 @@ def search():
         params = {"q": query, "type": "track", "limit": 10}
         results = requests.get(f"{api_base}/search", headers=headers, params=params).json()
     return render_template("search.html", results=results)
+
 
