@@ -76,6 +76,7 @@ def get_setting(settings, key, default):
     for k, v in settings.items():
         if k.lower() == key.lower():
             return v
+    print(f'default {default}')
     return default
 
 # WIDGET 1: BITCOIN (No Config needed -- this means no user settings are needed, nothing that would modify the API call)
@@ -382,18 +383,18 @@ def news_detail(settings):
         return {"Error": "Could not fetch news details"}
     
 
-    # WIDGET 7: Is This My Card? (User config for guessing a card and storing score)
-    # ====================================================
+# WIDGET 8: Is This My Card? (User config for guessing a card and storing score)
+# ====================================================
 
 
 def card_guess_summary(settings):
-    guess = get_setting(settings, 'guess', 'N/A')
-    score = get_setting(settings, 'hidden_score', -1)
+    rank = get_setting(settings, 'rank', '')
+    suit = get_setting(settings, 'suit', '')
     image = '../static/images/card_guess_image.png'
 
-    if guess['rank'] != '' and guess != 'N/A':
+    if rank != '' and suit != '':
         return {
-            "text": f"Current Guess: {guess['rank']} of {guess['suit']}\nCurrent Score: {score}",
+            "text": f"Current Guess: {rank} of {suit}",
             "image": image
         }
     else:
@@ -403,31 +404,37 @@ def card_guess_summary(settings):
         }
 
 def card_guess_detail(settings):
-    guess = get_setting(settings, 'guess', 'N/A')
+    rank = get_setting(settings, 'rank', '')
+    suit = get_setting(settings, 'suit', '')
     url = f"https://deckofcardsapi.com/api/deck/new/draw/?count=1"
 
-    if guess['rank'] != '' and guess != 'N/A':
+    if rank != '' and suit != '':
         try:
-            data = fetch_with_cache(url)
+            response = requests.get(url, timeout=0.5)
+            if response.status_code != 200:
+                return {"Error": "Dealer not letting go of your card..."}
+            data = response.json()
 
             if not data['success']:
                 return {"Error": "Dealer forgot the deck at home."}
 
-            if (data['cards']['value'] == guess['rank']) and (data['cards']['suit'] == guess['suit']):
-                WIDGET_REGISTRY['Is This My Card?']['config']['hidden_score'] += 5
+            if (data['cards'][0]['value'] == rank) and (data['cards'][0]['suit'] == suit):
+                print('Correct Guess')
+                print('Score Incrememented')
                 return {
                     f"YES, that WAS your card!": '#line_break#',
-                    "img_": data['cards']['image'],
-                    "Your Card": f'{data['cards']['value']} of {data['cards']['suit']}',
-                    "Your Guess": f'{guess['rank']} of {guess['suit']}'
+                    "img_": data['cards'][0]['image'],
+                    "Your Card": f'{data['cards'][0]['value']} of {data['cards'][0]['suit']}',
+                    "Your Guess": f'{rank} of {suit}'
                 }
             else:
-                WIDGET_REGISTRY['Is This My Card?']['config']['hidden_score'] -= 1
+                print('Incorrect Guess')
+                print('Score Decrememented')
                 return {
                     f"NO, that was NOT your card!": '#line_break#',
-                    "img_": data['cards']['image'],
-                    "Your Card": f'{data['cards']['value']} of {data['cards']['suit']}',
-                    "Your Guess": f'{guess['rank']} of {guess['suit']}'
+                    "img_": data['cards'][0]['image'],
+                    "Your Card": f'{data['cards'][0]['value']} of {data['cards'][0]['suit']}',
+                    "Your Guess": f'{rank} of {suit}'
                 }
         except:
             return {"Error": "Dealer is playing '52 Card Pickup'."}
@@ -493,7 +500,7 @@ WIDGET_REGISTRY = {
         "summary": card_guess_summary,
         "detail": card_guess_detail,
         "config": {
-            "hidden_score": 0,
+            "note_title": "Please make a guess here:",
             "select_rank": [
                 "ACE",
                 "2",
