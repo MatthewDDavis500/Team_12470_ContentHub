@@ -5,6 +5,7 @@ import os
 import tempfile
 from dotenv import load_dotenv
 from PIL import Image
+from markupsafe import Markup
 
 load_dotenv()
 
@@ -290,12 +291,15 @@ def player_summary(settings):
     except:
         return{"text": "Player Error"}
 def player_details(settings):
-    return {
-        "Launch Player": '<a href="/topsongs"><button style="padding:10px 20px;">Launch Player</button></a>'
-    }
+    try:
+        return {
+            "Launch Player": Markup(
+                '<a href="/topsongs"><button style="padding:10px 20px;">Open</button></a>'
+            )
+        }
     except:
-        return{"text": "Error"}
-
+        return {"text": "Error"}
+        
 def image_filter_summary(settings):
     try:
         return {"text": "Image Filter", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/Pencil_edit_icon.svg/640px-Pencil_edit_icon.svg.png"}
