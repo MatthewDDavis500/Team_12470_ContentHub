@@ -76,6 +76,7 @@ def get_setting(settings, key, default):
     for k, v in settings.items():
         if k.lower() == key.lower():
             return v
+    print(f'default {default}')
     return default
 
 # WIDGET 1: BITCOIN (No Config needed -- this means no user settings are needed, nothing that would modify the API call)
@@ -238,7 +239,7 @@ def poke_search_detail(settings):
 
 
 def book_search_summary(settings):
-    term = get_setting(settings, 'Search', 'N/A')
+    term = get_setting(settings, 'search', 'N/A')
     image = '../static/images/book_search_image.jpg'
 
     return {
@@ -381,6 +382,68 @@ def news_detail(settings):
     except:
         return {"Error": "Could not fetch news details"}
     
+
+# WIDGET 8: Is This My Card? (User config for guessing a card and storing score)
+# ====================================================
+
+
+def card_guess_summary(settings):
+    rank = get_setting(settings, 'rank', '')
+    suit = get_setting(settings, 'suit', '')
+    image = '../static/images/card_guess_image.png'
+
+    if rank != '' and suit != '':
+        return {
+            "text": f"Current Guess: {rank} of {suit}",
+            "image": image
+        }
+    else:
+        return {
+            "text": f"No Current Guess",
+            "image": image
+        }
+
+def card_guess_detail(settings):
+    rank = get_setting(settings, 'rank', '')
+    suit = get_setting(settings, 'suit', '')
+    url = f"https://deckofcardsapi.com/api/deck/new/draw/?count=1"
+
+    if rank != '' and suit != '':
+        try:
+            response = requests.get(url, timeout=0.5)
+            if response.status_code != 200:
+                return {"Error": "Dealer not letting go of your card..."}
+            data = response.json()
+
+            if not data['success']:
+                return {"Error": "Dealer forgot the deck at home."}
+
+            if (data['cards'][0]['value'] == rank) and (data['cards'][0]['suit'] == suit):
+                print('Correct Guess')
+                print('Score Incrememented')
+                return {
+                    f"YES, that WAS your card!": '#line_break#',
+                    "img_": data['cards'][0]['image'],
+                    "Your Card": f'{data['cards'][0]['value']} of {data['cards'][0]['suit']}',
+                    "Your Guess": f'{rank} of {suit}'
+                }
+            else:
+                print('Incorrect Guess')
+                print('Score Decrememented')
+                return {
+                    f"NO, that was NOT your card!": '#line_break#',
+                    "img_": data['cards'][0]['image'],
+                    "Your Card": f'{data['cards'][0]['value']} of {data['cards'][0]['suit']}',
+                    "Your Guess": f'{rank} of {suit}'
+                }
+        except:
+            return {"Error": "Dealer is playing '52 Card Pickup'."}
+    else:
+        return {
+            f"Please make a guess in the config menu.": '#line_break#'
+        }
+
+
 # THE REGISTRY
 #  This dictionary tells the app which widgets exist.
 # ====================================================
@@ -431,6 +494,34 @@ WIDGET_REGISTRY = {
         "detail": news_detail,
         "config": {
             "country": "us"
+        }
+    },
+    "Is This My Card?": {
+        "summary": card_guess_summary,
+        "detail": card_guess_detail,
+        "config": {
+            "note_title": "Please make a guess here:",
+            "select_rank": [
+                "ACE",
+                "2",
+                "3",
+                "4",
+                "5",
+                "6",
+                "7",
+                "8",
+                "9",
+                "10",
+                "JACK",
+                "QUEEN",
+                "KING"
+            ],
+            "select_suit": [
+                "CLUBS",
+                "DIAMONDS",
+                "SPADES",
+                "HEARTS"
+            ]
         }
     }
 }
