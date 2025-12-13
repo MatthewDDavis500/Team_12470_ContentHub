@@ -77,6 +77,7 @@ def get_setting(settings, key, default):
     for k, v in settings.items():
         if k.lower() == key.lower():
             return v
+    print(f'default {default}')
     return default
 
 # WIDGET 1: BITCOIN (No Config needed -- this means no user settings are needed, nothing that would modify the API call)
@@ -193,7 +194,6 @@ def weather_details(settings):
     except:
         return {"Error": "Could not fetch weather"}
 
-
 # WIDGET 4: POKEMON SEARCH (This one uses user config to set the target pokemon to search for)
 # If no pokemon is specified, it defaults to "Pikachu"
 # ====================================================
@@ -240,7 +240,7 @@ def poke_search_detail(settings):
 
 
 def book_search_summary(settings):
-    term = get_setting(settings, 'Search', 'N/A')
+    term = get_setting(settings, 'search', 'N/A')
     image = '../static/images/book_search_image.jpg'
 
     return {
@@ -347,6 +347,119 @@ def apply_filter(im, filter_type):
         im.putdata(filter_list)
     return im
 
+def news_summary(settings):
+    country = get_setting(settings, 'country', 'us')
+    api_key = os.getenv("NEWS_API_KEY")
+    
+    url = f"https://newsdata.io/api/1/news?apikey={api_key}&country={country}"
+
+    try:
+        data = fetch_with_cache(url)
+        
+        if data.get('status') != 'success':
+            return {"text": "API Key Error", "image": ""}
+
+        if data.get('results'):
+            top_stories = data['results'][:5]
+            selected_article = random.choice(top_stories)
+            title = selected_article['title']
+            
+            if len(title) > 60:
+                title = title[:57] + "..."
+
+            image = selected_article.get('image_url')
+            if not image:
+                image = "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Circle-icons-news.svg/512px-Circle-icons-news.svg.png"
+            
+            return {"text": title, "image": image}
+        else:
+            return {"text": "No News Found", "image": ""}
+            
+    except Exception as e:
+        print(f"News Widget Error: {e}")
+        return {"text": "API Error", "image": ""}
+
+
+def news_detail(settings):
+    country = get_setting(settings, 'country', 'us')
+    api_key = os.getenv("NEWS_API_KEY")
+    url = f"https://newsdata.io/api/1/news?apikey={api_key}&country={country}"
+
+    try:
+        data = fetch_with_cache(url)
+        articles = data['results'][:5] 
+        
+        details = {}
+        for i, article in enumerate(articles):
+            source = article.get('source_id', 'News')
+            details[f"Story {i+1} ({source})"] = article['title']
+            
+        return details
+    except:
+        return {"Error": "Could not fetch news details"}
+    
+
+# WIDGET 8: Is This My Card? (User config for guessing a card and storing score)
+# ====================================================
+
+
+def card_guess_summary(settings):
+    rank = get_setting(settings, 'rank', '')
+    suit = get_setting(settings, 'suit', '')
+    image = '../static/images/card_guess_image.png'
+
+    if rank != '' and suit != '':
+        return {
+            "text": f"Current Guess: {rank} of {suit}",
+            "image": image
+        }
+    else:
+        return {
+            "text": f"No Current Guess",
+            "image": image
+        }
+
+def card_guess_detail(settings):
+    rank = get_setting(settings, 'rank', '')
+    suit = get_setting(settings, 'suit', '')
+    url = f"https://deckofcardsapi.com/api/deck/new/draw/?count=1"
+
+    if rank != '' and suit != '':
+        try:
+            response = requests.get(url, timeout=0.5)
+            if response.status_code != 200:
+                return {"Error": "Dealer not letting go of your card..."}
+            data = response.json()
+
+            if not data['success']:
+                return {"Error": "Dealer forgot the deck at home."}
+
+            if (data['cards'][0]['value'] == rank) and (data['cards'][0]['suit'] == suit):
+                print('Correct Guess')
+                print('Score Incrememented')
+                return {
+                    f"YES, that WAS your card!": '#line_break#',
+                    "img_": data['cards'][0]['image'],
+                    "Your Card": f'{data['cards'][0]['value']} of {data['cards'][0]['suit']}',
+                    "Your Guess": f'{rank} of {suit}'
+                }
+            else:
+                print('Incorrect Guess')
+                print('Score Decrememented')
+                return {
+                    f"NO, that was NOT your card!": '#line_break#',
+                    "img_": data['cards'][0]['image'],
+                    "Your Card": f'{data['cards'][0]['value']} of {data['cards'][0]['suit']}',
+                    "Your Guess": f'{rank} of {suit}'
+                }
+        except:
+            return {"Error": "Dealer is playing '52 Card Pickup'."}
+    else:
+        return {
+            f"Please make a guess in the config menu.": '#line_break#'
+        }
+
+
 # THE REGISTRY
 #  This dictionary tells the app which widgets exist.
 # ====================================================
@@ -396,5 +509,40 @@ WIDGET_REGISTRY = {
     "summary": player_summary,
     "detail": player_details,
     "config": {}  
-    } 
+    },
+    "News Feed": {
+        "summary": news_summary,
+        "detail": news_detail,
+        "config": {
+            "country": "us"
+        }
+    },
+    "Is This My Card?": {
+        "summary": card_guess_summary,
+        "detail": card_guess_detail,
+        "config": {
+            "note_title": "Please make a guess here:",
+            "select_rank": [
+                "ACE",
+                "2",
+                "3",
+                "4",
+                "5",
+                "6",
+                "7",
+                "8",
+                "9",
+                "10",
+                "JACK",
+                "QUEEN",
+                "KING"
+            ],
+            "select_suit": [
+                "CLUBS",
+                "DIAMONDS",
+                "SPADES",
+                "HEARTS"
+            ]
+        }
+    }
 }
