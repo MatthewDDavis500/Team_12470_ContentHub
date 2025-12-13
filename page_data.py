@@ -3,6 +3,7 @@ pages = {
     "weather page" : {"file": "home", 
                       "app_function": "weather",
                       "route": "weather_page"},
+                      
     "news page" : {"file": "news",
                     "app_function": "news",
                     "route": "news_page"}
