@@ -377,8 +377,8 @@ def news_summary(settings):
                 session.modified = True
 
             title = raw_article['title']
-            if len(title) > 60:
-                title = title[:57] + "..."
+            if len(title) > 100:
+                title = title[:97] + "..."
             return {"text": title, "image": image}
         
         else:
@@ -391,25 +391,50 @@ def news_summary(settings):
 
 
 def news_detail(settings):
-    if has_request_context():
-        saved_data = session.get('selected_news_article')
-        if saved_data:
-            return saved_data
-        
-    print(">> Session expired. running self-healing...")
-    news_summary(settings)
+    country = get_setting(settings, 'country', 'us')
+    api_key = os.getenv("NEWS_API_KEY")
+    url = f"https://newsdata.io/api/1/news?apikey={api_key}&country={country}&language=en"
 
-    if has_request_context():
-        saved_data = session.get('selected_news_article')
-        if saved_data:
-            return saved_data
+    try:
+        data = fetch_with_cache(url)
+        if data.get('results'):
+            valid_stories = [a for a in data['results'] if a.get('title')]
+            if not valid_stories:
+                 return {"Error": "No articles found."}
 
-    return {
-        "Headline": "Session Expired",
-        "Description": "Please return to the dashboard to select a news story.",
-        "Source": "System",
-        "Link": "/dashboard"
-    }
+            target_link = session.get('current_news_link')
+            found_article = None
+            if target_link:
+                for story in valid_stories:
+                    if story.get('link') == target_link:
+                        found_article = story
+                        break
+            
+            if not found_article:
+                found_article = valid_stories[0]
+
+            desc = found_article.get('description')
+            if not desc:
+                desc = found_article.get('content')
+            if not desc:
+                desc = "No description available. Click the link to read more."
+
+            if len(str(desc)) > 300:
+                desc = str(desc)[:300] + "..."
+
+            return {
+                "Headline": found_article['title'],
+                "Date": found_article.get('pubDate', 'Unknown'),
+                "Source": found_article.get('source_id', 'News').title(),
+                "Description": desc,
+                "Link": found_article.get('link', '#')
+            }
+        else:
+            return {"Error": "No news data found"}
+            
+    except Exception as e:
+        print(f"News Detail Error: {e}")
+        return {"Error": "Could not fetch news details"}
     
 # THE REGISTRY
 #  This dictionary tells the app which widgets exist.
