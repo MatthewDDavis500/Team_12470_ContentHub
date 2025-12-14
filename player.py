@@ -56,9 +56,9 @@ def topsongs():
     top_tracks = []
     if not results:
         top = [
+            "2plbrEY59IikOBgBGLjaoe",
             "0je57Uq5eTk1wrPzn9sWbl",
             "3yWuTOYDztXjZxdE2cIRUa",
-            "2plbrEY59IikOBgBGLjaoe",
             "2X3DlOF546VuOJLPu7hn9J",
             "6CcmabfR68aD0jtjSVS8sy"
         ]
@@ -96,5 +96,6 @@ def search():
         params = {"q": query, "type": "track", "limit": 10}
         results = requests.get(f"{api_base}/search", headers=headers, params=params).json()
     return render_template("search.html", results=results)
+
 
 
