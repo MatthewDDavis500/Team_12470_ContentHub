@@ -29,6 +29,7 @@ load_dotenv()
 CACHE = {}
 CACHE_DURATION = 300  # Keep data for 300 seconds (5 minutes)
 
+USER_ARTICLES = {}
 
 def fetch_with_cache(url):
     current_time = time.time()
@@ -346,8 +347,11 @@ def news_summary(settings):
             if not valid_stories:
                 return {"text": "No Headlines", "image": ""}
 
-            limit = min(len(valid_stories), 10)
-            raw_article = random.choice(valid_stories[:limit])
+            raw_article = random.choice(valid_stories)
+            user_id = settings.get('user_id')
+
+            if user_id:
+                USER_ARTICLES[user_id] = raw_article.get('link')
             
             desc = raw_article.get('description')
             if not desc:
@@ -363,18 +367,6 @@ def news_summary(settings):
                 image = "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Circle-icons-news.svg/512px-Circle-icons-news.svg.png"
             elif not image:
                 image = "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Circle-icons-news.svg/512px-Circle-icons-news.svg.png"
-
-            saved_article_data = {
-                "Headline": raw_article['title'],
-                "Date": raw_article.get('pubDate', 'Unknown'),
-                "Source": raw_article.get('source_id', 'News').title(),
-                "Description": desc,
-                "Link": raw_article.get('link', '#')
-            }
-            
-            if has_request_context():
-                session['selected_news_article'] = saved_article_data
-                session.modified = True
 
             title = raw_article['title']
             if len(title) > 100:
@@ -402,7 +394,10 @@ def news_detail(settings):
             if not valid_stories:
                  return {"Error": "No articles found."}
 
-            target_link = session.get('current_news_link')
+            target_link = None
+            if has_request_context() and 'user_id' in session:
+                target_link = USER_ARTICLES.get(session['user_id'])
+
             found_article = None
             if target_link:
                 for story in valid_stories:
@@ -410,6 +405,7 @@ def news_detail(settings):
                         found_article = story
                         break
             
+            # This is a fallback in case the specific article is not found (any reason)
             if not found_article:
                 found_article = valid_stories[0]
 
