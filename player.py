@@ -9,11 +9,10 @@ author = "https://accounts.spotify.com/authorize"
 token_url = "https://accounts.spotify.com/api/token"
 api_base = "https://api.spotify.com/v1"
 
-#@app.route("/")
+
 def index():
     return render_template("index.html")
 
-#@app.route("/login")
 def music_login():
     scope = "user-read-private user-read-email"
     auth_url = (
@@ -23,7 +22,6 @@ def music_login():
     )
     return redirect(auth_url)
 
-#@app.route("/callback")
 def callback():
     code = request.args.get("code")
     auth_header = base64.b64encode(f"{client_id}:{client_secret}".encode()).decode()
@@ -40,7 +38,6 @@ def callback():
     session["access_token"] = token_resp.get("access_token")
     return redirect("/topsongs")
 
-#@app.route("/topsongs", methods=["GET", "POST"])
 def topsongs():
     token = session.get("access_token")
     if not token:
@@ -72,7 +69,6 @@ def topsongs():
     return render_template("topsongs.html", results=results, top_tracks=top_tracks)
 
 
-#@app.route("/player/<spotify_id>")
 def player(spotify_id):
     token = session.get("access_token")
     headers = {"Authorization": f"Bearer {token}"}
@@ -88,7 +84,6 @@ def player(spotify_id):
         track_image=track_data["album"]["images"][0]["url"]
     )
 
-#@app.route("/search", methods=["GET", "POST"])
 def search():
     token = session.get("access_token")
     if not token:
@@ -101,6 +96,5 @@ def search():
         params = {"q": query, "type": "track", "limit": 10}
         results = requests.get(f"{api_base}/search", headers=headers, params=params).json()
     return render_template("search.html", results=results)
-
 
 
