@@ -285,19 +285,17 @@ def book_search_detail(settings):
     except:
         return {"Error": "Search Failed."}
 
-def player_summary(settings):
-    try:
-        return{ "text": "MiniPlayer", "image": '../static/images/spoty.png'}
-    except:
-        return{"text": "Player Error"}
 def player_details(settings):
     try:
         return {
             "Launch Player": Markup(
-                '<a href="/topsongs"><button style="padding:10px 20px;">Open</button></a>'
+                '<a href="/music_login" target="_blank">'
+                '<button style="padding:10px 20px; background-color:#1DB954; color:white; border:none; border-radius:12px;">Open</button>'
+                '</a>'
             )
         }
     except:
+        print("Error generating")
         return {"text": "Error"}
         
 def image_filter_summary(settings):
