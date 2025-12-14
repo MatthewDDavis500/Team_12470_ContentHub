@@ -284,7 +284,13 @@ def book_search_detail(settings):
         return detail_result
     except:
         return {"Error": "Search Failed."}
-
+     
+def player_summary(settings):
+    try:
+        return{ "text": "MiniPlayer", "image": '../static/images/spoty.png'}
+    except:
+        return{"text": "Player Error"}
+        
 def player_details(settings):
     try:
         return {
