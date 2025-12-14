@@ -19,12 +19,12 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret_key'
 bootstrap = Bootstrap5(app)
 
-from player import topsongs, music_login, callback, player, search 
-app.add_url_rule("/topsongs", view_func=topsongs, methods=["GET", "POST"])
-app.add_url_rule("/music_login", view_func=music_login)
-app.add_url_rule("/callback", view_func=callback)
+import player  
+app.add_url_rule("/topsongs", view_func=player.topsongs, methods=["GET", "POST"])
+app.add_url_rule("/music_login", view_func=player.music_login)
+app.add_url_rule("/callback", view_func=player.callback)
 app.add_url_rule("/player/<spotify_id>", view_func=player)
-app.add_url_rule("/search", view_func=search, methods=["GET", "POST"])
+app.add_url_rule("/search", view_func=player.search, methods=["GET", "POST"])
 
 
 API_KEY_WEATHER = "c1dc9ea9c2388bec9e6448061862dbb4"
