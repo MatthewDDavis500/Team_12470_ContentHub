@@ -19,6 +19,14 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret_key'
 bootstrap = Bootstrap5(app)
 
+import player  
+app.add_url_rule("/topsongs", view_func=player.topsongs, methods=["GET", "POST"])
+app.add_url_rule("/music_login", view_func=player.music_login)
+app.add_url_rule("/callback", view_func=player.callback)
+app.add_url_rule("/player/<spotify_id>", view_func=player)
+app.add_url_rule("/search", view_func=player.search, methods=["GET", "POST"])
+
+
 API_KEY_WEATHER = "c1dc9ea9c2388bec9e6448061862dbb4"
 def get_lat_lon(city_name):
     geo_url = f"http://api.openweathermap.org/geo/1.0/direct?q={city_name}&limit=1&appid={API_KEY_WEATHER}"

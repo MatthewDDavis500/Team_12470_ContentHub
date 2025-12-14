@@ -1,0 +1,59 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Top Songs</title>
+    <style>
+        body { background-color: #121212; color: white; font-family: Arial, sans-serif; padding: 20px; }
+        h1 { text-align: center; margin-bottom: 20px; }
+        form { text-align: center; margin-bottom: 30px; }
+        input[type="text"] { padding: 8px; width: 300px; }
+        button { padding: 8px 15px; }
+        .song-card { background-color: #1e1e1e; padding: 12px; margin: 12px auto; width: 80%; border-radius: 12px; display: flex; align-items: center; justify-content: space-between; }
+        .song-info { display: flex; align-items: center; }
+        .song-info img { width: 60px; height: 60px; border-radius: 8px; margin-right: 15px; }
+        .song-card a { background-color: #1DB954; color: white; padding: 6px 14px; border-radius: 20px; text-decoration: none; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <h1>MiniPlayer</h1>
+    <form method="POST">
+        <input type="text" name="query" placeholder="Search songs">
+        <button type="submit">Search</button>
+    </form>
+
+    {% if results and results.tracks %}
+        <h2 style="text-align:center;">Search Results</h2>
+        {% for t in results.tracks['items'] %}
+        <div class="song-card">
+            <div class="song-info">
+                <img src="{{ t.album.images[0].url }}">
+                <div>
+                    <div><strong>{{ t.name }}</strong></div>
+                    <div>{{ t.artists[0].name }}</div>
+                </div>
+            </div>
+            <a href="/player/{{ t.id }}">Play</a>
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    {% if top_tracks %}
+        <h2 style="text-align:center;">Top Songs</h2>
+        {% for t in top_tracks %}
+        <div class="song-card">
+            <div class="song-info">
+                <img src="{{ t.album.images[0].url }}">
+                <div>
+                    <div><strong>{{ t.name }}</strong></div>
+                    <div>{{ t.artists[0].name }}</div>
+                </div>
+            </div>
+            <a href="/player/{{ t.id }}">Play</a>
+        </div>
+        {% endfor %}
+    {% endif %}
+
+</body>
+</html>

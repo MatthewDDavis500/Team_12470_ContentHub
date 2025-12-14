@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MiniPlayer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #121212;
+            color: #fff;
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .player-card {
+            background-color: #1e1e1e;
+            padding: 20px;
+            border-radius: 16px;
+            width: 450px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .track-info {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .track-info img {
+            width: 150px;
+            height: 150px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+        }
+
+        .track-info h2 {
+            margin: 5px 0;
+            font-size: 20px;
+        }
+
+        .track-info p {
+            margin: 0;
+            color: #b3b3b3;
+        }
+
+        iframe {
+            width: 400px;
+            height: 80px;
+            border: none;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        a.button {
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            background-color: #1DB954;
+            color: white;
+            font-weight: bold;
+        }
+
+        @media (max-width: 500px) {
+            .player-card {
+                width: 90%;
+            }
+            iframe {
+                width: 100%;
+            }
+            .track-info img {
+                width: 120px;
+                height: 120px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="player-card">
+        <div class="track-info">
+            <img src="{{ track_image }}" alt="Track Image">
+            <h2>{{ track_name }}</h2>
+            <p>{{ track_artist }}</p>
+        </div>
+
+        <iframe 
+            src="{{ embed_url }}"
+            allow="encrypted-media">
+        </iframe>
+
+        <a href="/search" class="button">Back to Search</a>
+    </div>
+</body>
+</html>

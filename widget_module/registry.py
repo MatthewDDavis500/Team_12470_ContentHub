@@ -5,6 +5,7 @@ import os
 import tempfile
 from dotenv import load_dotenv
 from PIL import Image
+from markupsafe import Markup
 
 load_dotenv()
 
@@ -284,6 +285,19 @@ def book_search_detail(settings):
     except:
         return {"Error": "Search Failed."}
 
+def player_details(settings):
+    try:
+        return {
+            "Launch Player": Markup(
+                '<a href="/music_login" target="_blank">'
+                '<button style="padding:10px 20px; background-color:#1DB954; color:white; border:none; border-radius:12px;">Open</button>'
+                '</a>'
+            )
+        }
+    except:
+        print("Error generating")
+        return {"text": "Error"}
+        
 def image_filter_summary(settings):
     try:
         return {"text": "Image Filter", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/Pencil_edit_icon.svg/640px-Pencil_edit_icon.svg.png"}
@@ -488,6 +502,11 @@ WIDGET_REGISTRY = {
             "select_filter": ["grayscale", "negative", "sepia"],
             "upload_image": ""
         }
+    },
+    "MiniPlayer": {
+    "summary": player_summary,
+    "detail": player_details,
+    "config": {}  
     },
     "News Feed": {
         "summary": news_summary,
