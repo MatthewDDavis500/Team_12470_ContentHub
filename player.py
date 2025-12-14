@@ -69,7 +69,7 @@ def topsongs():
     return render_template("topsongs.html", results=results, top_tracks=top_tracks)
 
 
-def player(spotify_id):
+def play(spotify_id):
     token = session.get("access_token")
     if not token:
         return redirect("/music_login")
@@ -98,6 +98,7 @@ def search():
         params = {"q": query, "type": "track", "limit": 10}
         results = requests.get(f"{api_base}/search", headers=headers, params=params).json()
     return render_template("search.html", results=results)
+
 
 
 
