@@ -71,6 +71,8 @@ def topsongs():
 
 def player(spotify_id):
     token = session.get("access_token")
+    if not token:
+        return redirect("/music_login")
     headers = {"Authorization": f"Bearer {token}"}
     track_data = requests.get(f"{api_base}/tracks/{spotify_id}", headers=headers).json()
 
@@ -96,6 +98,7 @@ def search():
         params = {"q": query, "type": "track", "limit": 10}
         results = requests.get(f"{api_base}/search", headers=headers, params=params).json()
     return render_template("search.html", results=results)
+
 
 
 
