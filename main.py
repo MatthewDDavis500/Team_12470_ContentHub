@@ -19,11 +19,12 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret_key'
 bootstrap = Bootstrap5(app)
 
-import player  
+
+import player #, music_login, callback, player, search 
 app.add_url_rule("/topsongs", view_func=player.topsongs, methods=["GET", "POST"])
 app.add_url_rule("/music_login", view_func=player.music_login)
 app.add_url_rule("/callback", view_func=player.callback)
-app.add_url_rule("/play/<spotify_id>", view_func=player.play)
+app.add_url_rule("/player/<spotify_id>", view_func=player.play)
 app.add_url_rule("/search", view_func=player.search, methods=["GET", "POST"])
 
 
