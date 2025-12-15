@@ -175,6 +175,7 @@ def get_user_dashboard(conn, user_id):
         if name in WIDGET_REGISTRY:
             # Get settings immediately
             settings = get_widget_settings(conn, uw_id)
+            settings['user_id'] = user_id
             # Store the data we need to run the function later
             widget_tasks.append({
                 "id": uw_id,
