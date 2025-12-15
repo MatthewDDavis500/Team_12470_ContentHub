@@ -1,3 +1,4 @@
+from flask import session, has_request_context
 import requests
 import random
 import time
@@ -29,6 +30,7 @@ load_dotenv()
 CACHE = {}
 CACHE_DURATION = 300  # Keep data for 300 seconds (5 minutes)
 
+USER_ARTICLES = {}
 
 def fetch_with_cache(url):
     current_time = time.time()
@@ -354,52 +356,101 @@ def apply_filter(im, filter_type):
 def news_summary(settings):
     country = get_setting(settings, 'country', 'us')
     api_key = os.getenv("NEWS_API_KEY")
-    
-    url = f"https://newsdata.io/api/1/news?apikey={api_key}&country={country}"
+    url = f"https://newsdata.io/api/1/news?apikey={api_key}&country={country}&language=en"
 
     try:
         data = fetch_with_cache(url)
-        
         if data.get('status') != 'success':
-            return {"text": "API Key Error", "image": ""}
+            return {"text": "API Error", "image": ""}
 
         if data.get('results'):
-            top_stories = data['results'][:5]
-            selected_article = random.choice(top_stories)
-            title = selected_article['title']
-            
-            if len(title) > 60:
-                title = title[:57] + "..."
+            valid_stories = [a for a in data['results'] if a.get('title')]
+            if not valid_stories:
+                return {"text": "No Headlines", "image": ""}
 
-            image = selected_article.get('image_url')
-            if not image:
-                image = "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Circle-icons-news.svg/512px-Circle-icons-news.svg.png"
+            raw_article = random.choice(valid_stories)
+            user_id = settings.get('user_id')
+
+            if user_id:
+                USER_ARTICLES[user_id] = raw_article.get('link')
             
+            desc = raw_article.get('description')
+            if not desc:
+                desc = raw_article.get('content')
+            if not desc:
+                desc = "No description available. Click the link to read more."
+            
+            if len(str(desc)) > 350:
+                desc = str(desc)[:347] + "..."
+
+            image = raw_article.get('image_url')
+            if image and len(image) > 250: 
+                image = "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Circle-icons-news.svg/512px-Circle-icons-news.svg.png"
+            elif not image:
+                image = "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Circle-icons-news.svg/512px-Circle-icons-news.svg.png"
+
+            title = raw_article['title']
+            if len(title) > 100:
+                title = title[:97] + "..."
             return {"text": title, "image": image}
+        
         else:
             return {"text": "No News Found", "image": ""}
             
     except Exception as e:
-        print(f"News Widget Error: {e}")
-        return {"text": "API Error", "image": ""}
+        if "outside of request context" not in str(e):
+            print(f"News Summary Error: {e}")
+        return {"text": "Connection Error", "image": ""}
 
 
 def news_detail(settings):
     country = get_setting(settings, 'country', 'us')
     api_key = os.getenv("NEWS_API_KEY")
-    url = f"https://newsdata.io/api/1/news?apikey={api_key}&country={country}"
+    url = f"https://newsdata.io/api/1/news?apikey={api_key}&country={country}&language=en"
 
     try:
         data = fetch_with_cache(url)
-        articles = data['results'][:5] 
-        
-        details = {}
-        for i, article in enumerate(articles):
-            source = article.get('source_id', 'News')
-            details[f"Story {i+1} ({source})"] = article['title']
+        if data.get('results'):
+            valid_stories = [a for a in data['results'] if a.get('title')]
+            if not valid_stories:
+                 return {"Error": "No articles found."}
+
+            target_link = None
+            if has_request_context() and 'user_id' in session:
+                target_link = USER_ARTICLES.get(session['user_id'])
+
+            found_article = None
+            if target_link:
+                for story in valid_stories:
+                    if story.get('link') == target_link:
+                        found_article = story
+                        break
             
-        return details
-    except:
+            # This is a fallback in case the specific article is not found (any reason)
+            if not found_article:
+                found_article = valid_stories[0]
+
+            desc = found_article.get('description')
+            if not desc:
+                desc = found_article.get('content')
+            if not desc:
+                desc = "No description available. Click the link to read more."
+
+            if len(str(desc)) > 300:
+                desc = str(desc)[:300] + "..."
+
+            return {
+                "Headline": found_article['title'],
+                "Date": found_article.get('pubDate', 'Unknown'),
+                "Source": found_article.get('source_id', 'News').title(),
+                "Description": desc,
+                "Link": found_article.get('link', '#')
+            }
+        else:
+            return {"Error": "No news data found"}
+            
+    except Exception as e:
+        print(f"News Detail Error: {e}")
         return {"Error": "Could not fetch news details"}
     
 
