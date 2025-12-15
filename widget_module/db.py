@@ -187,15 +187,14 @@ def get_user_dashboard(conn, user_id):
     cursor.execute(query, (user_id,))
     rows = cursor.fetchall()
     
-    
     widget_tasks = []
     for row in rows:
         uw_id = row[0]
         name = row[1]
         if name in WIDGET_REGISTRY:
-            # Get settings immediately
             settings = get_widget_settings(conn, uw_id)
             settings['user_id'] = user_id
+            settings['instance_id'] = uw_id
             # Store the data we need to run the function later
             widget_tasks.append({
                 "id": uw_id,
@@ -206,23 +205,19 @@ def get_user_dashboard(conn, user_id):
             })
 
     results = []
-    
-    def process_widget(task):
+    for task in widget_tasks:
         try:
             summary_data = task['func'](task['settings'])
-        except:
+        except Exception as e:
+            print(f"Widget Error ({task['name']}): {e}")
             summary_data = {"text": "Error", "image": ""}
             
-        return {
+        results.append({
             "id": task['id'],
             "name": task['name'],
             "summary": summary_data,
             "has_settings": task['has_settings']
-        }
-
-    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-        results = list(executor.map(process_widget, widget_tasks))
-        
+        })
     return results
 
 # This gets the detailed data for a specific widget instance ---
@@ -241,6 +236,8 @@ def get_widget_detail_data(conn, instance_id):
         name = res[0]
         # Fetch settings
         settings = get_widget_settings(conn, instance_id)
+        
+        settings['instance_id'] = instance_id
         # Pass to detail function
         return name, WIDGET_REGISTRY[name]["detail"](settings)
 

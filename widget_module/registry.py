@@ -7,6 +7,8 @@ import tempfile
 from dotenv import load_dotenv
 from PIL import Image
 from markupsafe import Markup
+from helper_functions.pokemon import format_pokemon_data
+from helper_functions.crypto import format_crypto_data
 
 load_dotenv()
 
@@ -73,18 +75,20 @@ def crypto_details(settings):
     url = "https://api.coinbase.com/v2/prices/BTC-USD/spot"
     try:
         data = fetch_with_cache(url)
-        price = float(data['data']['amount'])
-        return {
-            "Cryptocurrency": "Bitcoin (BTC)",
-            "Current Price": f"${price:,.2f}",
-            "Source": "Coinbase Public API"
-        }
-    except:
-        return {"Status": "Could not load details"}
+        
+        return format_crypto_data(data)
+    except Exception as e:
+        print(f"Crypto Error: {e}")
+        return {"Error": "Could not load details"}
 
 
 def pokemon_summary(settings):
     poke_id = random.randint(1, 151)
+
+    if 'instance_id' in settings:
+        session_key = f"poke_randomizer_{settings['instance_id']}"
+        session[session_key] = poke_id
+        
     url = f"https://pokeapi.co/api/v2/pokemon/{poke_id}"
     try:
         response = requests.get(url, timeout=0.5)
@@ -97,18 +101,22 @@ def pokemon_summary(settings):
 
 
 def pokemon_details(settings):
-    poke_id = random.randint(1, 151)
+    poke_id = None
+
+    if 'instance_id' in settings:
+        session_key = f"poke_randomizer_{settings['instance_id']}"
+        poke_id = session.get(session_key)
+    
+    if not poke_id:
+        poke_id = random.randint(1, 151)
+    
     url = f"https://pokeapi.co/api/v2/pokemon/{poke_id}"
     try:
         response = requests.get(url, timeout=0.5)
         data = response.json()
-        types = ", ".join([t['type']['name'] for t in data['types']]).title()
-        return {
-            "Name": data['name'].capitalize(),
-            "ID": f"#{data['id']}",
-            "Types": types
-        }
-    except:
+        return format_pokemon_data(data)
+    except Exception as e:
+        print(f"Pokemon Error: {e}")
         return {"Error": "Wild Pokemon fled!"}
 
 
@@ -178,12 +186,7 @@ def poke_search_detail(settings):
         data = fetch_with_cache(url)
         types = ", ".join([t['type']['name'] for t in data['types']]).title()
 
-        return {
-            "Name": data['name'].capitalize(),
-            "ID": f"#{data['id']}",
-            "Types": types,
-            "Stats": "User Selected"
-        }
+        return format_pokemon_data(data)
     except:
         return {"Error": "Could not load details"}
 
@@ -290,7 +293,7 @@ def apply_filter(im, filter_type):
     elif filter_type == 'sepia':
         filter_list = []
         for p in im.getdata():
-            r,g,b = p[0], p[1], p[2];
+            r,g,b = p[0], p[1], p[2]
             if r < 63:
                 r *= 1.1
                 b *= 0.9
