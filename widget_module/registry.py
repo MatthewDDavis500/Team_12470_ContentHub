@@ -317,7 +317,7 @@ def apply_filter(im, filter_type):
     elif filter_type == 'sepia':
         filter_list = []
         for p in im.getdata():
-            r,g,b = p[0], p[1], p[2];
+            r,g,b = p[0], p[1], p[2]
             if r < 63:
                 r *= 1.1
                 b *= 0.9
