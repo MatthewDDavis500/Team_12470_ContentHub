@@ -12,7 +12,7 @@ db_config = {
     'host': os.getenv('DB_HOST'),
     'database': os.getenv('DB_NAME'),
     'port': int(os.getenv('DB_PORT', 3306)),
-    'connect_timeout': 10  # Don't wait forever
+    'connect_timeout': 10
 }
 
 print("--- DEBUGGING DB CONFIG ---")

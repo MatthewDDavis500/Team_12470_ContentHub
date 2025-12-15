@@ -1,5 +1,6 @@
 import concurrent.futures
 from .registry import WIDGET_REGISTRY
+from werkzeug.security import generate_password_hash, check_password_hash
 
 
 # --- AUTH
@@ -7,9 +8,28 @@ from .registry import WIDGET_REGISTRY
 
 def login_user(conn, username, password):
     cursor = conn.cursor(dictionary=True)
-    query = "SELECT * FROM users WHERE username = %s AND password_hash = %s"
-    cursor.execute(query, (username, password))
-    return cursor.fetchone()
+    query = "SELECT * FROM users WHERE username = %s"
+    cursor.execute(query, (username,))
+    user =  cursor.fetchone()
+    
+    if not user:
+        return None
+    
+    stored_password = user['password_hash']
+    
+    if check_password_hash(stored_password, password):
+        return user
+    elif stored_password == password:
+        print(f"Migrating user {username} to hashed password... (hopefully this doesn't break anything)")
+        
+        new_hash = generate_password_hash(password)
+        update_cursor = conn.cursor()
+        update_query = "UPDATE users SET password_hash = %s WHERE id = %s"
+        update_cursor.execute(update_query, (new_hash, user['id']))
+        conn.commit()
+        
+        return user
+    return None
 
 
 def signup_user(conn, username, password):

@@ -79,7 +79,6 @@ class LogInForm(FlaskForm):
     )
 
 def attempt_log_in(username, password, form):
-    # This is to handle login form submission
     if request.method == 'POST':
         conn = db_connect.get_db_connection()
         # This function checks username/password and returns user data (it should be a dictionary that gets returned) if valid or None if invalid

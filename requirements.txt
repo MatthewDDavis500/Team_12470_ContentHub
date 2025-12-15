@@ -5,3 +5,4 @@ mysql-connector-python
 python-dotenv
 requests
 WTForms
+Werkzeug
