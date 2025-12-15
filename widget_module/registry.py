@@ -186,7 +186,6 @@ def weather_details(settings):
     except:
         return {"Error": "Could not fetch weather"}
 
-
 # WIDGET 4: POKEMON SEARCH (This one uses user config to set the target pokemon to search for)
 # If no pokemon is specified, it defaults to "Pikachu"
 # ====================================================
@@ -299,6 +298,57 @@ def apply_filter(im, filter_type):
         im.putdata(filter_list)
     return im
 
+def news_summary(settings):
+    country = get_setting(settings, 'country', 'us')
+    api_key = os.getenv("NEWS_API_KEY")
+    
+    url = f"https://newsdata.io/api/1/news?apikey={api_key}&country={country}"
+
+    try:
+        data = fetch_with_cache(url)
+        
+        if data.get('status') != 'success':
+            return {"text": "API Key Error", "image": ""}
+
+        if data.get('results'):
+            top_stories = data['results'][:5]
+            selected_article = random.choice(top_stories)
+            title = selected_article['title']
+            
+            if len(title) > 60:
+                title = title[:57] + "..."
+
+            image = selected_article.get('image_url')
+            if not image:
+                image = "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Circle-icons-news.svg/512px-Circle-icons-news.svg.png"
+            
+            return {"text": title, "image": image}
+        else:
+            return {"text": "No News Found", "image": ""}
+            
+    except Exception as e:
+        print(f"News Widget Error: {e}")
+        return {"text": "API Error", "image": ""}
+
+
+def news_detail(settings):
+    country = get_setting(settings, 'country', 'us')
+    api_key = os.getenv("NEWS_API_KEY")
+    url = f"https://newsdata.io/api/1/news?apikey={api_key}&country={country}"
+
+    try:
+        data = fetch_with_cache(url)
+        articles = data['results'][:5] 
+        
+        details = {}
+        for i, article in enumerate(articles):
+            source = article.get('source_id', 'News')
+            details[f"Story {i+1} ({source})"] = article['title']
+            
+        return details
+    except:
+        return {"Error": "Could not fetch news details"}
+    
 # THE REGISTRY
 #  This dictionary tells the app which widgets exist.
 # ====================================================
@@ -347,4 +397,11 @@ WIDGET_REGISTRY = {
             "upload_image 4": "image_display_4.png",
         }
     },
+    "News Feed": {
+        "summary": news_summary,
+        "detail": news_detail,
+        "config": {
+            "country": "us"
+        }
+    }
 }
