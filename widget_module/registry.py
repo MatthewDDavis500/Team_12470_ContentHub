@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from PIL import Image
 from markupsafe import Markup
 from helper_functions.pokemon import format_pokemon_data
+from helper_functions.crypto import format_crypto_data
 
 load_dotenv()
 
@@ -74,14 +75,11 @@ def crypto_details(settings):
     url = "https://api.coinbase.com/v2/prices/BTC-USD/spot"
     try:
         data = fetch_with_cache(url)
-        price = float(data['data']['amount'])
-        return {
-            "Cryptocurrency": "Bitcoin (BTC)",
-            "Current Price": f"${price:,.2f}",
-            "Source": "Coinbase Public API"
-        }
-    except:
-        return {"Status": "Could not load details"}
+        
+        return format_crypto_data(data)
+    except Exception as e:
+        print(f"Crypto Error: {e}")
+        return {"Error": "Could not load details"}
 
 
 def pokemon_summary(settings):
