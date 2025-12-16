@@ -6,48 +6,28 @@ import os
 import tempfile
 from dotenv import load_dotenv
 from PIL import Image
+from markupsafe import Markup
+from helper_functions.pokemon import format_pokemon_data
+from helper_functions.crypto import format_crypto_data
 
 load_dotenv()
 
-# IMPORTANT: This is how I'm buidling widgets. This should allow for relitively easy widget creation/additions.
-# WIDGET REGISTRY SYSTEM
-# ====================================================
-#  This file is where we define all our widgets.
-#  You do NOT need to touch the database files or HTML to add a new widget.
-#
-#  HOW TO ADD A NEW WIDGET:
-#  1. Write two python functions:
-#     - *_summary(settings): Returns the data for the small dashboard box.
-#     - *_detail(settings): Returns the data for the full details page.
-#  2. Add your widget to the WIDGET_REGISTRY dictionary at the bottom.
-#  3. (Optional) If your widget needs user input (like a city name), 
-#     add it to the 'config' section in the registry.
-
-
-# CACHING SYSTEM (This is meant to reduce API calls and speed up the app a bit by storing data in memory for a short time)
-
 CACHE = {}
-CACHE_DURATION = 300  # Keep data for 300 seconds (5 minutes)
+CACHE_DURATION = 300
 
 USER_ARTICLES = {}
 
 def fetch_with_cache(url):
     current_time = time.time()
 
-    # 1. Check if we have valid data in memory
     if url in CACHE:
         data, timestamp = CACHE[url]
         if current_time - timestamp < CACHE_DURATION:
-            # Data is fresh! Return immediately (Instant)
             return data
-
-    # 2. Data is old or missing. Fetch from API.
-    #  use a very short timeout (0.5s). If the API is slow, then have the function give up
-    # instead of freezing the webpage.
+        
     print(f">> Fetching fresh data from: {url}")
     try:
         if url[:27] == 'https://gutendex.com/books?':
-            # Gutendex API needs a little more time to fetch from large library of books
             response = requests.get(url, timeout=2.0)
         else:
             response = requests.get(url, timeout=0.5)
@@ -59,15 +39,12 @@ def fetch_with_cache(url):
             CACHE[url] = (json_data, current_time)
             return json_data
     except:
-        pass  # Fall through to the error raise below
+        pass
 
     raise Exception("API Timeout or Error")
 
 
 
-# HELPER: SAFE GET SETTINGS
-# Helper function: Safely gets a user setting (like 'city' or 'username').
-# It handles capitalization differences automatically.
 def get_setting(settings, key, default):
     if not settings:
         return default
@@ -81,19 +58,11 @@ def get_setting(settings, key, default):
     print(f'default {default}')
     return default
 
-# WIDGET 1: BITCOIN (No Config needed -- this means no user settings are needed, nothing that would modify the API call)
-# ====================================================
-"""
-    The 'Summary' function controls the small widget box on the dashboard.
-    It must return a dictionary with:
-    - 'text': The main text to display
-    - 'image': An optional URL for an icon/image (can be empty string if none)
-"""
+
 def crypto_summary(settings):
     url = "https://api.coinbase.com/v2/prices/BTC-USD/spot"
     btc_logo = "https://upload.wikimedia.org/wikipedia/commons/thumb/4/46/Bitcoin.svg/128px-Bitcoin.svg.png"
     try:
-        # USE CACHE: Crypto doesn't need to update every second
         data = fetch_with_cache(url)
         price = float(data['data']['amount'])
         return {"text": f"${price:,.2f}", "image": btc_logo}
@@ -102,30 +71,24 @@ def crypto_summary(settings):
 
 
 
-"""
-    The 'Detail' function controls the page when you click 'View Details'.
-    It returns a dictionary. Every Key/Value pair will be listed on the page.
-"""
 def crypto_details(settings):
     url = "https://api.coinbase.com/v2/prices/BTC-USD/spot"
     try:
         data = fetch_with_cache(url)
-        price = float(data['data']['amount'])
-        return {
-            "Cryptocurrency": "Bitcoin (BTC)",
-            "Current Price": f"${price:,.2f}",
-            "Source": "Coinbase Public API"
-        }
-    except:
-        return {"Status": "Could not load details"}
+        
+        return format_crypto_data(data)
+    except Exception as e:
+        print(f"Crypto Error: {e}")
+        return {"Error": "Could not load details"}
 
-
-# WIDGET 2: POKEMON RANDOMIZER (This one doesn't use config)
-# ====================================================
 
 def pokemon_summary(settings):
-    # We DO NOT cache this, because we want it to change every time (i.e. randomize)
     poke_id = random.randint(1, 151)
+
+    if 'instance_id' in settings:
+        session_key = f"poke_randomizer_{settings['instance_id']}"
+        session[session_key] = poke_id
+        
     url = f"https://pokeapi.co/api/v2/pokemon/{poke_id}"
     try:
         response = requests.get(url, timeout=0.5)
@@ -138,23 +101,25 @@ def pokemon_summary(settings):
 
 
 def pokemon_details(settings):
-    poke_id = random.randint(1, 151)
+    poke_id = None
+
+    if 'instance_id' in settings:
+        session_key = f"poke_randomizer_{settings['instance_id']}"
+        poke_id = session.get(session_key)
+    
+    if not poke_id:
+        poke_id = random.randint(1, 151)
+    
     url = f"https://pokeapi.co/api/v2/pokemon/{poke_id}"
     try:
         response = requests.get(url, timeout=0.5)
         data = response.json()
-        types = ", ".join([t['type']['name'] for t in data['types']]).title()
-        return {
-            "Name": data['name'].capitalize(),
-            "ID": f"#{data['id']}",
-            "Types": types
-        }
-    except:
+        return format_pokemon_data(data)
+    except Exception as e:
+        print(f"Pokemon Error: {e}")
         return {"Error": "Wild Pokemon fled!"}
 
 
-# WIDGET 3: WEATHER (This one uses user config to set the city, or defaults to a specific city, I chose Salinas)
-# ====================================================
 def weather_summary(settings):
     city = get_setting(settings, 'city', 'Salinas')
 
@@ -195,10 +160,6 @@ def weather_details(settings):
     except:
         return {"Error": "Could not fetch weather"}
 
-# WIDGET 4: POKEMON SEARCH (This one uses user config to set the target pokemon to search for)
-# If no pokemon is specified, it defaults to "Pikachu"
-# ====================================================
-
 
 def poke_search_summary(settings):
     target = get_setting(settings, 'target_pokemon', 'pikachu').lower()
@@ -225,12 +186,7 @@ def poke_search_detail(settings):
         data = fetch_with_cache(url)
         types = ", ".join([t['type']['name'] for t in data['types']]).title()
 
-        return {
-            "Name": data['name'].capitalize(),
-            "ID": f"#{data['id']}",
-            "Types": types,
-            "Stats": "User Selected"
-        }
+        return format_pokemon_data(data)
     except:
         return {"Error": "Could not load details"}
 
@@ -238,7 +194,6 @@ def poke_search_detail(settings):
 # WIDGET 5: BOOK SEARCH (User config to set the search term to use)
 # If no previous searches, defaults to empty search
 # ====================================================
-
 
 def book_search_summary(settings):
     term = get_setting(settings, 'search', 'N/A')
@@ -285,7 +240,26 @@ def book_search_detail(settings):
         return detail_result
     except:
         return {"Error": "Search Failed."}
-
+     
+def player_summary(settings):
+    try:
+        return{ "text": "MiniPlayer", "image": '../static/images/spoty.png'}
+    except:
+        return{"text": "Player Error"}
+        
+def player_details(settings):
+    try:
+        return {
+            "Launch Player": Markup(
+                '<a href="/music_login" target="_blank">'
+                '<button style="padding:10px 20px; background-color:#1DB954; color:white; border:none; border-radius:12px;">Open</button>'
+                '</a>'
+            )
+        }
+    except:
+        print("Error generating")
+        return {"text": "Error"}
+        
 def image_filter_summary(settings):
     try:
         return {"text": "Image Filter", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/Pencil_edit_icon.svg/640px-Pencil_edit_icon.svg.png"}
@@ -502,7 +476,7 @@ WIDGET_REGISTRY = {
     "Bitcoin Tracker": {
         "summary": crypto_summary,
         "detail": crypto_details,
-        "config": {} # Empty dict = No user settings needed
+        "config": {}
     },
     "Pokemon Randomizer": {
         "summary": pokemon_summary,
@@ -513,8 +487,6 @@ WIDGET_REGISTRY = {
         "summary": weather_summary,
         "detail": weather_details,
         "config": {
-            # Adding a key here AUTOMATICALLY creates a form input for the user!
-            # Format: "Label Name": "Default Value"
             "city": "Salinas"
         }
     },
@@ -539,6 +511,11 @@ WIDGET_REGISTRY = {
             "select_filter": ["grayscale", "negative", "sepia"],
             "upload_image": ""
         }
+    },
+    "MiniPlayer": {
+    "summary": player_summary,
+    "detail": player_details,
+    "config": {}  
     },
     "News Feed": {
         "summary": news_summary,
