@@ -26,6 +26,7 @@ Content Hub is a customizable web dashboard built with Flask and MySQL. It allow
    ```
 
 **Important:** Ensure the .env file is present in the root folder. This file contains the API keys and Database credentials required for the app to connect to the cloud database.
+Note: To access MiniPlayer use csumb email.
 
 #### Run the application using Flask:
 
