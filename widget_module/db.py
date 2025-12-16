@@ -1,5 +1,6 @@
 import concurrent.futures
 from .registry import WIDGET_REGISTRY
+from werkzeug.security import generate_password_hash, check_password_hash
 
 
 # --- AUTH
@@ -7,9 +8,28 @@ from .registry import WIDGET_REGISTRY
 
 def login_user(conn, username, password):
     cursor = conn.cursor(dictionary=True)
-    query = "SELECT * FROM users WHERE username = %s AND password_hash = %s"
-    cursor.execute(query, (username, password))
-    return cursor.fetchone()
+    query = "SELECT * FROM users WHERE username = %s"
+    cursor.execute(query, (username,))
+    user =  cursor.fetchone()
+    
+    if not user:
+        return None
+    
+    stored_password = user['password_hash']
+    
+    if check_password_hash(stored_password, password):
+        return user
+    elif stored_password == password:
+        print(f"Migrating user {username} to hashed password... (hopefully this doesn't break anything)")
+        
+        new_hash = generate_password_hash(password)
+        update_cursor = conn.cursor()
+        update_query = "UPDATE users SET password_hash = %s WHERE id = %s"
+        update_cursor.execute(update_query, (new_hash, user['id']))
+        conn.commit()
+        
+        return user
+    return None
 
 
 def signup_user(conn, username, password):
@@ -160,14 +180,14 @@ def get_user_dashboard(conn, user_id):
     cursor.execute(query, (user_id,))
     rows = cursor.fetchall()
     
-    
     widget_tasks = []
     for row in rows:
         uw_id = row[0]
         name = row[1]
         if name in WIDGET_REGISTRY:
-            # Get settings immediately
             settings = get_widget_settings(conn, uw_id)
+            settings['user_id'] = user_id
+            settings['instance_id'] = uw_id
             # Store the data we need to run the function later
             widget_tasks.append({
                 "id": uw_id,
@@ -178,23 +198,19 @@ def get_user_dashboard(conn, user_id):
             })
 
     results = []
-    
-    def process_widget(task):
+    for task in widget_tasks:
         try:
             summary_data = task['func'](task['settings'])
-        except:
+        except Exception as e:
+            print(f"Widget Error ({task['name']}): {e}")
             summary_data = {"text": "Error", "image": ""}
             
-        return {
+        results.append({
             "id": task['id'],
             "name": task['name'],
             "summary": summary_data,
             "has_settings": task['has_settings']
-        }
-
-    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-        results = list(executor.map(process_widget, widget_tasks))
-        
+        })
     return results
 
 # This gets the detailed data for a specific widget instance ---
@@ -213,6 +229,8 @@ def get_widget_detail_data(conn, instance_id):
         name = res[0]
         # Fetch settings
         settings = get_widget_settings(conn, instance_id)
+        
+        settings['instance_id'] = instance_id
         # Pass to detail function
         return name, WIDGET_REGISTRY[name]["detail"](settings)
 

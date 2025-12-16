@@ -29,6 +29,8 @@
                                     <option value="{{ option }}"> {{ option }}</option>
                                 {% endfor %}
                             </select>
+                        {% elif 'note_' in field_key %}
+                            <h3>{{ val }}</h3>
                         {% else %}
                             <label class="form-label text-capitalize">{{ field_key }}</label>
                             <input type="text" class="form-control" name="{{ field_key }}"

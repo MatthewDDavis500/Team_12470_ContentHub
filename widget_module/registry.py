@@ -1,3 +1,4 @@
+from flask import session, has_request_context
 import requests
 import random
 import time
@@ -5,47 +6,28 @@ import os
 import tempfile
 from dotenv import load_dotenv
 from PIL import Image
+from markupsafe import Markup
+from helper_functions.pokemon import format_pokemon_data
+from helper_functions.crypto import format_crypto_data
 
 load_dotenv()
 
-# IMPORTANT: This is how I'm buidling widgets. This should allow for relitively easy widget creation/additions.
-# WIDGET REGISTRY SYSTEM
-# ====================================================
-#  This file is where we define all our widgets.
-#  You do NOT need to touch the database files or HTML to add a new widget.
-#
-#  HOW TO ADD A NEW WIDGET:
-#  1. Write two python functions:
-#     - *_summary(settings): Returns the data for the small dashboard box.
-#     - *_detail(settings): Returns the data for the full details page.
-#  2. Add your widget to the WIDGET_REGISTRY dictionary at the bottom.
-#  3. (Optional) If your widget needs user input (like a city name), 
-#     add it to the 'config' section in the registry.
-
-
-# CACHING SYSTEM (This is meant to reduce API calls and speed up the app a bit by storing data in memory for a short time)
-
 CACHE = {}
-CACHE_DURATION = 300  # Keep data for 300 seconds (5 minutes)
+CACHE_DURATION = 300
 
+USER_ARTICLES = {}
 
 def fetch_with_cache(url):
     current_time = time.time()
 
-    # 1. Check if we have valid data in memory
     if url in CACHE:
         data, timestamp = CACHE[url]
         if current_time - timestamp < CACHE_DURATION:
-            # Data is fresh! Return immediately (Instant)
             return data
-
-    # 2. Data is old or missing. Fetch from API.
-    #  use a very short timeout (0.5s). If the API is slow, then have the function give up
-    # instead of freezing the webpage.
+        
     print(f">> Fetching fresh data from: {url}")
     try:
         if url[:27] == 'https://gutendex.com/books?':
-            # Gutendex API needs a little more time to fetch from large library of books
             response = requests.get(url, timeout=2.0)
         else:
             response = requests.get(url, timeout=0.5)
@@ -57,15 +39,12 @@ def fetch_with_cache(url):
             CACHE[url] = (json_data, current_time)
             return json_data
     except:
-        pass  # Fall through to the error raise below
+        pass
 
     raise Exception("API Timeout or Error")
 
 
 
-# HELPER: SAFE GET SETTINGS
-# Helper function: Safely gets a user setting (like 'city' or 'username').
-# It handles capitalization differences automatically.
 def get_setting(settings, key, default):
     if not settings:
         return default
@@ -76,21 +55,14 @@ def get_setting(settings, key, default):
     for k, v in settings.items():
         if k.lower() == key.lower():
             return v
+    print(f'default {default}')
     return default
 
-# WIDGET 1: BITCOIN (No Config needed -- this means no user settings are needed, nothing that would modify the API call)
-# ====================================================
-"""
-    The 'Summary' function controls the small widget box on the dashboard.
-    It must return a dictionary with:
-    - 'text': The main text to display
-    - 'image': An optional URL for an icon/image (can be empty string if none)
-"""
+
 def crypto_summary(settings):
     url = "https://api.coinbase.com/v2/prices/BTC-USD/spot"
     btc_logo = "https://upload.wikimedia.org/wikipedia/commons/thumb/4/46/Bitcoin.svg/128px-Bitcoin.svg.png"
     try:
-        # USE CACHE: Crypto doesn't need to update every second
         data = fetch_with_cache(url)
         price = float(data['data']['amount'])
         return {"text": f"${price:,.2f}", "image": btc_logo}
@@ -99,30 +71,24 @@ def crypto_summary(settings):
 
 
 
-"""
-    The 'Detail' function controls the page when you click 'View Details'.
-    It returns a dictionary. Every Key/Value pair will be listed on the page.
-"""
 def crypto_details(settings):
     url = "https://api.coinbase.com/v2/prices/BTC-USD/spot"
     try:
         data = fetch_with_cache(url)
-        price = float(data['data']['amount'])
-        return {
-            "Cryptocurrency": "Bitcoin (BTC)",
-            "Current Price": f"${price:,.2f}",
-            "Source": "Coinbase Public API"
-        }
-    except:
-        return {"Status": "Could not load details"}
+        
+        return format_crypto_data(data)
+    except Exception as e:
+        print(f"Crypto Error: {e}")
+        return {"Error": "Could not load details"}
 
-
-# WIDGET 2: POKEMON RANDOMIZER (This one doesn't use config)
-# ====================================================
 
 def pokemon_summary(settings):
-    # We DO NOT cache this, because we want it to change every time (i.e. randomize)
     poke_id = random.randint(1, 151)
+
+    if 'instance_id' in settings:
+        session_key = f"poke_randomizer_{settings['instance_id']}"
+        session[session_key] = poke_id
+        
     url = f"https://pokeapi.co/api/v2/pokemon/{poke_id}"
     try:
         response = requests.get(url, timeout=0.5)
@@ -135,23 +101,25 @@ def pokemon_summary(settings):
 
 
 def pokemon_details(settings):
-    poke_id = random.randint(1, 151)
+    poke_id = None
+
+    if 'instance_id' in settings:
+        session_key = f"poke_randomizer_{settings['instance_id']}"
+        poke_id = session.get(session_key)
+    
+    if not poke_id:
+        poke_id = random.randint(1, 151)
+    
     url = f"https://pokeapi.co/api/v2/pokemon/{poke_id}"
     try:
         response = requests.get(url, timeout=0.5)
         data = response.json()
-        types = ", ".join([t['type']['name'] for t in data['types']]).title()
-        return {
-            "Name": data['name'].capitalize(),
-            "ID": f"#{data['id']}",
-            "Types": types
-        }
-    except:
+        return format_pokemon_data(data)
+    except Exception as e:
+        print(f"Pokemon Error: {e}")
         return {"Error": "Wild Pokemon fled!"}
 
 
-# WIDGET 3: WEATHER (This one uses user config to set the city, or defaults to a specific city, I chose Salinas)
-# ====================================================
 def weather_summary(settings):
     city = get_setting(settings, 'city', 'Salinas')
 
@@ -222,25 +190,17 @@ def poke_search_detail(settings):
         data = fetch_with_cache(url)
         types = ", ".join([t['type']['name'] for t in data['types']]).title()
 
-        return {
-            "Name": data['name'].capitalize(),
-            "ID": f"#{data['id']}",
-            "Types": types,
-            "Stats": "User Selected"
-        }
+        return format_pokemon_data(data)
     except:
         return {"Error": "Could not load details"}
 
-<<<<<<< HEAD
-=======
 
 # WIDGET 5: BOOK SEARCH (User config to set the search term to use)
 # If no previous searches, defaults to empty search
 # ====================================================
 
-
 def book_search_summary(settings):
-    term = get_setting(settings, 'Search', 'N/A')
+    term = get_setting(settings, 'search', 'N/A')
     image = '../static/images/book_search_image.jpg'
 
     return {
@@ -284,8 +244,26 @@ def book_search_detail(settings):
         return detail_result
     except:
         return {"Error": "Search Failed."}
-
->>>>>>> fe8a7cd (Changed format for detail return)
+     
+def player_summary(settings):
+    try:
+        return{ "text": "MiniPlayer", "image": '../static/images/spoty.png'}
+    except:
+        return{"text": "Player Error"}
+        
+def player_details(settings):
+    try:
+        return {
+            "Launch Player": Markup(
+                '<a href="/music_login" target="_blank">'
+                '<button style="padding:10px 20px; background-color:#1DB954; color:white; border:none; border-radius:12px;">Open</button>'
+                '</a>'
+            )
+        }
+    except:
+        print("Error generating")
+        return {"text": "Error"}
+        
 def image_filter_summary(settings):
     try:
         return {"text": "Image Filter", "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/Pencil_edit_icon.svg/640px-Pencil_edit_icon.svg.png"}
@@ -345,7 +323,7 @@ def apply_filter(im, filter_type):
     elif filter_type == 'sepia':
         filter_list = []
         for p in im.getdata():
-            r,g,b = p[0], p[1], p[2];
+            r,g,b = p[0], p[1], p[2]
             if r < 63:
                 r *= 1.1
                 b *= 0.9
@@ -362,35 +340,51 @@ def apply_filter(im, filter_type):
 def news_summary(settings):
     country = get_setting(settings, 'country', 'us')
     api_key = os.getenv("NEWS_API_KEY")
-    
-    url = f"https://newsdata.io/api/1/news?apikey={api_key}&country={country}"
+    url = f"https://newsdata.io/api/1/news?apikey={api_key}&country={country}&language=en"
 
     try:
         data = fetch_with_cache(url)
-<<<<<<< HEAD
-        
         if data.get('status') != 'success':
-            return {"text": "API Key Error", "image": ""}
+            return {"text": "API Error", "image": ""}
 
         if data.get('results'):
-            top_stories = data['results'][:5]
-            selected_article = random.choice(top_stories)
-            title = selected_article['title']
-            
-            if len(title) > 60:
-                title = title[:57] + "..."
+            valid_stories = [a for a in data['results'] if a.get('title')]
+            if not valid_stories:
+                return {"text": "No Headlines", "image": ""}
 
-            image = selected_article.get('image_url')
-            if not image:
-                image = "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Circle-icons-news.svg/512px-Circle-icons-news.svg.png"
+            raw_article = random.choice(valid_stories)
+            user_id = settings.get('user_id')
+
+            if user_id:
+                USER_ARTICLES[user_id] = raw_article.get('link')
             
+            desc = raw_article.get('description')
+            if not desc:
+                desc = raw_article.get('content')
+            if not desc:
+                desc = "No description available. Click the link to read more."
+            
+            if len(str(desc)) > 350:
+                desc = str(desc)[:347] + "..."
+
+            image = raw_article.get('image_url')
+            if image and len(image) > 250: 
+                image = "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Circle-icons-news.svg/512px-Circle-icons-news.svg.png"
+            elif not image:
+                image = "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Circle-icons-news.svg/512px-Circle-icons-news.svg.png"
+
+            title = raw_article['title']
+            if len(title) > 100:
+                title = title[:97] + "..."
             return {"text": title, "image": image}
+        
         else:
             return {"text": "No News Found", "image": ""}
             
     except Exception as e:
-        print(f"News Widget Error: {e}")
-        return {"text": "API Error", "image": ""}
+        if "outside of request context" not in str(e):
+            print(f"News Summary Error: {e}")
+        return {"text": "Connection Error", "image": ""}
 
 
 def news_detail(settings):
@@ -408,23 +402,119 @@ def news_detail(settings):
             details[f"Story {i+1} ({source})"] = article['title']
             
         return details
-=======
-        return {
-            "Total Number of Search Results": data['count'],
-            "Top Five Results": {
-                "Title1": data['results'][0]['title'],
-                "Title2": data['results'][1]['title'],
-                "Title3": data['results'][2]['title']
-            }
-            # "Title": data['name'].capitalize(),
-            # "ID": f"#{data['id']}",
-            # "Types": types,
-            # "Stats": "User Selected"
-        }
->>>>>>> 5947760 (More work on the widget details)
     except:
         return {"Error": "Could not fetch news details"}
     
+=======
+    url = f"https://newsdata.io/api/1/news?apikey={api_key}&country={country}&language=en"
+
+    try:
+        data = fetch_with_cache(url)
+        if data.get('results'):
+            valid_stories = [a for a in data['results'] if a.get('title')]
+            if not valid_stories:
+                 return {"Error": "No articles found."}
+
+            target_link = None
+            if has_request_context() and 'user_id' in session:
+                target_link = USER_ARTICLES.get(session['user_id'])
+
+            found_article = None
+            if target_link:
+                for story in valid_stories:
+                    if story.get('link') == target_link:
+                        found_article = story
+                        break
+            
+            # This is a fallback in case the specific article is not found (any reason)
+            if not found_article:
+                found_article = valid_stories[0]
+
+            desc = found_article.get('description')
+            if not desc:
+                desc = found_article.get('content')
+            if not desc:
+                desc = "No description available. Click the link to read more."
+
+            if len(str(desc)) > 300:
+                desc = str(desc)[:300] + "..."
+
+            return {
+                "Headline": found_article['title'],
+                "Date": found_article.get('pubDate', 'Unknown'),
+                "Source": found_article.get('source_id', 'News').title(),
+                "Description": desc,
+                "Link": found_article.get('link', '#')
+            }
+        else:
+            return {"Error": "No news data found"}
+            
+    except Exception as e:
+        print(f"News Detail Error: {e}")
+        return {"Error": "Could not fetch news details"}
+    
+
+# WIDGET 8: Is This My Card? (User config for guessing a card and storing score)
+# ====================================================
+
+
+def card_guess_summary(settings):
+    rank = get_setting(settings, 'rank', '')
+    suit = get_setting(settings, 'suit', '')
+    image = '../static/images/card_guess_image.png'
+
+    if rank != '' and suit != '':
+        return {
+            "text": f"Current Guess: {rank} of {suit}",
+            "image": image
+        }
+    else:
+        return {
+            "text": f"No Current Guess",
+            "image": image
+        }
+
+def card_guess_detail(settings):
+    rank = get_setting(settings, 'rank', '')
+    suit = get_setting(settings, 'suit', '')
+    url = f"https://deckofcardsapi.com/api/deck/new/draw/?count=1"
+
+    if rank != '' and suit != '':
+        try:
+            response = requests.get(url, timeout=0.5)
+            if response.status_code != 200:
+                return {"Error": "Dealer not letting go of your card..."}
+            data = response.json()
+
+            if not data['success']:
+                return {"Error": "Dealer forgot the deck at home."}
+
+            if (data['cards'][0]['value'] == rank) and (data['cards'][0]['suit'] == suit):
+                print('Correct Guess')
+                print('Score Incrememented')
+                return {
+                    f"YES, that WAS your card!": '#line_break#',
+                    "img_": data['cards'][0]['image'],
+                    "Your Card": f'{data['cards'][0]['value']} of {data['cards'][0]['suit']}',
+                    "Your Guess": f'{rank} of {suit}'
+                }
+            else:
+                print('Incorrect Guess')
+                print('Score Decrememented')
+                return {
+                    f"NO, that was NOT your card!": '#line_break#',
+                    "img_": data['cards'][0]['image'],
+                    "Your Card": f'{data['cards'][0]['value']} of {data['cards'][0]['suit']}',
+                    "Your Guess": f'{rank} of {suit}'
+                }
+        except:
+            return {"Error": "Dealer is playing '52 Card Pickup'."}
+    else:
+        return {
+            f"Please make a guess in the config menu.": '#line_break#'
+        }
+
+
 # THE REGISTRY
 #  This dictionary tells the app which widgets exist.
 # ====================================================
@@ -432,7 +522,7 @@ WIDGET_REGISTRY = {
     "Bitcoin Tracker": {
         "summary": crypto_summary,
         "detail": crypto_details,
-        "config": {} # Empty dict = No user settings needed
+        "config": {}
     },
     "Pokemon Randomizer": {
         "summary": pokemon_summary,
@@ -443,8 +533,6 @@ WIDGET_REGISTRY = {
         "summary": weather_summary,
         "detail": weather_details,
         "config": {
-            # Adding a key here AUTOMATICALLY creates a form input for the user!
-            # Format: "Label Name": "Default Value"
             "city": "Salinas"
         }
     },
@@ -453,6 +541,61 @@ WIDGET_REGISTRY = {
         "detail": poke_search_detail,
         "config": {
             "target_pokemon": "pikachu"
+        }
+    },
+    "Book Search": {
+        "summary": book_search_summary,
+        "detail": book_search_detail,
+        "config": {
+            "search": "N/A"
+        }
+    },
+    "Image Filtering": {
+        "summary": image_filter_summary,
+        "detail": image_filter_detail,
+        "config": {
+            "select_filter": ["grayscale", "negative", "sepia"],
+            "upload_image": ""
+        }
+    },
+    "MiniPlayer": {
+    "summary": player_summary,
+    "detail": player_details,
+    "config": {}  
+    },
+    "News Feed": {
+        "summary": news_summary,
+        "detail": news_detail,
+        "config": {
+            "country": "us"
+        }
+    },
+    "Is This My Card?": {
+        "summary": card_guess_summary,
+        "detail": card_guess_detail,
+        "config": {
+            "note_title": "Please make a guess here:",
+            "select_rank": [
+                "ACE",
+                "2",
+                "3",
+                "4",
+                "5",
+                "6",
+                "7",
+                "8",
+                "9",
+                "10",
+                "JACK",
+                "QUEEN",
+                "KING"
+            ],
+            "select_suit": [
+                "CLUBS",
+                "DIAMONDS",
+                "SPADES",
+                "HEARTS"
+            ]
         }
     }
 }

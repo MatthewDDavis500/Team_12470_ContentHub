@@ -19,6 +19,15 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret_key'
 bootstrap = Bootstrap5(app)
 
+
+import player #, music_login, callback, player, search 
+app.add_url_rule("/topsongs", view_func=player.topsongs, methods=["GET", "POST"])
+app.add_url_rule("/music_login", view_func=player.music_login)
+app.add_url_rule("/callback", view_func=player.callback)
+app.add_url_rule("/player/<spotify_id>", view_func=player.play)
+app.add_url_rule("/search", view_func=player.search, methods=["GET", "POST"])
+
+
 API_KEY_WEATHER = "c1dc9ea9c2388bec9e6448061862dbb4"
 def get_lat_lon(city_name):
     geo_url = f"http://api.openweathermap.org/geo/1.0/direct?q={city_name}&limit=1&appid={API_KEY_WEATHER}"
@@ -71,7 +80,6 @@ class LogInForm(FlaskForm):
     )
 
 def attempt_log_in(username, password, form):
-    # This is to handle login form submission
     if request.method == 'POST':
         conn = db_connect.get_db_connection()
         # This function checks username/password and returns user data (it should be a dictionary that gets returned) if valid or None if invalid
